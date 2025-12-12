@@ -12,12 +12,14 @@ namespace org.kdtnet.CAAPI.Tests
     {
         private Mock<ILogger>? MockLogger { get; set; }
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
+        private Mock<IDataStore>? MockDataStore { get; set; }
 
-        [TestInitializeAttribute]
+        [TestInitialize]
         public void BeforeEachTest()
         {
             MockLogger = new Mock<ILogger>();
             MockConfigurationSource = new Mock<IConfigurationSource>();
+            MockDataStore = new Mock<IDataStore>();
             Debug.WriteLine("test initialized");
         }
 
@@ -27,9 +29,10 @@ namespace org.kdtnet.CAAPI.Tests
         #region Happy Path
 
         [TestMethod]
+        [TestCategory("ApplicationEngine.Ctor.HappyPath")]
         public void ConstructEngine()
         {
-            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object);
+            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, MockDataStore!.Object);
         }
 
         #endregion
@@ -37,10 +40,12 @@ namespace org.kdtnet.CAAPI.Tests
         #region Grumpy Path
 
         [TestMethod]
+        [TestCategory("ApplicationEngine.Ctor.GrumpyPath")]
         public void ConstructEngineWithNulls()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => _ = new ApplicationEngine(null!, MockConfigurationSource!.Object ));
-            Assert.ThrowsException<ArgumentNullException>(() => _ = new ApplicationEngine(MockLogger!.Object, null! ));
+            Assert.ThrowsException<ArgumentNullException>(() => _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, MockDataStore!.Object ));
+            Assert.ThrowsException<ArgumentNullException>(() => _ = new ApplicationEngine(MockLogger!.Object, null!,  MockDataStore!.Object ));
+            Assert.ThrowsException<ArgumentNullException>(() => _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null! ));
         }
 
         #endregion
