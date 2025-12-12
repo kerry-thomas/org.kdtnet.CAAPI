@@ -1,4 +1,4 @@
-namespace org.kdtnet.CAAPI;
+namespace org.kdtnet.CAAPI.Tests;
 
 [TestClass]
 public class UnitTest1
