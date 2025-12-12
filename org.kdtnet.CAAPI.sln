@@ -2,7 +2,11 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "org.kdtnet.CAAPI.Tests", "org.kdtnet.CAAPI.Tests\org.kdtnet.CAAPI.Tests.csproj", "{73384F40-48C2-400A-B3FE-DCD2B32162BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "org.kdtnet.CAAPI", "org.kdtnet.CAAPI\org.kdtnet.CAAPI.csproj", "{634F3E82-E59A-41FF-8711-B7DA1D1D23D2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "org.kdtnet.CAAPI.Common", "org.kdtnet.CAAPI.Common\org.kdtnet.CAAPI.Common.csproj", "{AE374874-8AC9-4775-8053-41D86932BB6E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "org.kdtnet.CAAPI.Service", "org.kdtnet.CAAPI.Service\org.kdtnet.CAAPI.Service.csproj", "{C89C57A8-81E3-466B-80ED-B6A132AD5510}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "org.kdtnet.CAAPI.Engine", "org.kdtnet.CAAPI.Engine\org.kdtnet.CAAPI.Engine.csproj", "{C0DDCDA7-776F-4116-8D91-30C500B40B0D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,9 +18,17 @@ Global
 		{73384F40-48C2-400A-B3FE-DCD2B32162BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{73384F40-48C2-400A-B3FE-DCD2B32162BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{73384F40-48C2-400A-B3FE-DCD2B32162BD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{634F3E82-E59A-41FF-8711-B7DA1D1D23D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{634F3E82-E59A-41FF-8711-B7DA1D1D23D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{634F3E82-E59A-41FF-8711-B7DA1D1D23D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{634F3E82-E59A-41FF-8711-B7DA1D1D23D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE374874-8AC9-4775-8053-41D86932BB6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE374874-8AC9-4775-8053-41D86932BB6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE374874-8AC9-4775-8053-41D86932BB6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE374874-8AC9-4775-8053-41D86932BB6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C89C57A8-81E3-466B-80ED-B6A132AD5510}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C89C57A8-81E3-466B-80ED-B6A132AD5510}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C89C57A8-81E3-466B-80ED-B6A132AD5510}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C89C57A8-81E3-466B-80ED-B6A132AD5510}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0DDCDA7-776F-4116-8D91-30C500B40B0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0DDCDA7-776F-4116-8D91-30C500B40B0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0DDCDA7-776F-4116-8D91-30C500B40B0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0DDCDA7-776F-4116-8D91-30C500B40B0D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
