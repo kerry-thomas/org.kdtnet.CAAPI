@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using org.kdtnet.CAAPI.Common.Abstraction;
-using org.kdtnet.CAAPI.Common.Data.RestApi;
 using org.kdtnet.CAAPI.Common.Utility;
 
 namespace org.kdtnet.CAAPI.Tests;
@@ -15,9 +14,11 @@ public class ValidationHelperTests
     }
 
     #region String Validator Tests
+    
+    #region Happy Path
 
     [TestMethod]
-    [TestCategory("ValidationHelper.String")]
+    [TestCategory("ValidationHelper.String.HappyPath")]
     public void AssertStringNotNull()
     {
         ValidationHelper.AssertStringNotNull("xxx", "testValue", false);
@@ -30,46 +31,86 @@ public class ValidationHelperTests
         Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(string.Empty, "testValue", true));
         Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(" ", "testValue", true));
     }
+    
+    #endregion
+    
+    #region Grumpy Path
+    
+    [TestMethod]
+    [TestCategory("ValidationHelper.String.HappyPath")]
+    public void AssertStringNotNull_NullPropertyName()
+    {
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertStringNotNull("XXXX", null!, true));
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertStringNotNull("XXXX", null!, false));
+    }
+    
+    #endregion
 
     #endregion
-}
-
-[ExcludeFromCodeCoverage]
-[TestClass]
-public class RequestValidationTests
-{
-    [TestInitialize]
-    public void BeforeEachTest()
-    {
-    }
-
-    #region CreateCertificateAuthority Tests
-
+    
+    #region ConditionValidator Tests
+    
+    #region Happy Path
+    
     [TestMethod]
-    [TestCategory("RequestValidation.CreateCertificateAuthorityRequest")]
-    public void CreateCertificateAuthorityRequest_Validate()
+    [TestCategory("ValidationHelper.Condition.HappyPath")]
+    public void AssertCondition()
     {
-        var value = Create();
-        value.Validate();
-
-        var v2 = Create(); v2.UniqueId = null!;
-        Assert.ThrowsException<ValidationException>(() => v2.Validate());
-        
-        var v3 = Create(); v3.AsymmetricPrivateKeyPassphrase = null!;
-        Assert.ThrowsException<ValidationException>(() => v3.Validate());
-        return;
-
-        CreateCertificateAuthorityRequest Create()
-        {
-            return new CreateCertificateAuthorityRequest()
-            {
-                UniqueId = "TextCa",
-                EAsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
-                AsymmetricPrivateKeyPassphrase = "Test123$",
-                CreateIntermediate = false,
-            };
-        }
+        ValidationHelper.AssertCondition(() => true, "test condition", "testValue");
+        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertCondition(() => false, "test condition", "testValue"));
     }
 
+    
+    #endregion
+    
+    #region Grumpy Path
+    
+    [TestMethod]
+    [TestCategory("ValidationHelper.Condition.GrumpyPath")]
+    public void AssertCondition_NullParameters()
+    {
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertCondition(null!, "test condition", "testValue"));
+        
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertCondition(() => true, null!, "testValue"));
+        Assert.ThrowsException<ArgumentException>(() => ValidationHelper.AssertCondition(() => true, string.Empty, "testValue"));
+        Assert.ThrowsException<ArgumentException>(() => ValidationHelper.AssertCondition(() => true, " ", "testValue"));
+        
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertCondition(() => true, "test condition", null!));
+        Assert.ThrowsException<ArgumentException>(() => ValidationHelper.AssertCondition(() => true, "test condition", string.Empty));
+        Assert.ThrowsException<ArgumentException>(() => ValidationHelper.AssertCondition(() => true, "test condition", " "));
+    }
+    
+    #endregion
+    
+    #endregion
+    
+    #region ObjectNotNullValidator Tests
+    
+    #region Happy Path
+    
+    [TestMethod]
+    [TestCategory("ValidationHelper.ObjectNotNull.HappyPath")]
+    public void AssertObjectNotNull()
+    {
+        ValidationHelper.AssertObjectNotNull(new object(), "testObject");
+        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertObjectNotNull(null!, "testObject"));
+    }
+
+    
+    #endregion
+    
+    #region Grumpy Path
+    
+    [TestMethod]
+    [TestCategory("ValidationHelper.ObjectNotNull.GrumpyPath")]
+    public void AssertObjectNotNull_NullParameters()
+    {
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertObjectNotNull(new object(), null!));
+        Assert.ThrowsException<ArgumentException>(() => ValidationHelper.AssertObjectNotNull(() => true, string.Empty));
+        Assert.ThrowsException<ArgumentException>(() => ValidationHelper.AssertObjectNotNull(() => true, " "));
+    }
+    
+    #endregion
+    
     #endregion
 }
