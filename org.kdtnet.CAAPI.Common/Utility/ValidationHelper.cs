@@ -1,10 +1,11 @@
+using System.Runtime.CompilerServices;
 using org.kdtnet.CAAPI.Common.Abstraction;
 
 namespace org.kdtnet.CAAPI.Common.Utility;
 
 public static class ValidationHelper
 {
-    public static void AssertStringNotNull(string? value, string propertyName, bool blankOrEmptyIsNull)
+    public static void AssertStringNotNull(string? value, bool blankOrEmptyIsNull, [CallerArgumentExpression(nameof(value))] string? propertyName = null )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
         if (value == null)
@@ -13,7 +14,7 @@ public static class ValidationHelper
         if(blankOrEmptyIsNull && string.IsNullOrWhiteSpace(value))
             throw new ValidationException($"{propertyName} may not be null/empty/blank");
     }
-    
+
     public static void AssertCondition(Func<bool> action, string moniker, string propertyName)
     {
         ArgumentNullException.ThrowIfNull(action);
@@ -24,7 +25,7 @@ public static class ValidationHelper
             throw new ValidationException($"{propertyName} failed custom condition {moniker}");
     }
 
-    public static void AssertObjectNotNull(object value, string propertyName)
+    public static void AssertObjectNotNull(object value, [CallerArgumentExpression(nameof(value))] string? propertyName = null )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
         if (value == null)

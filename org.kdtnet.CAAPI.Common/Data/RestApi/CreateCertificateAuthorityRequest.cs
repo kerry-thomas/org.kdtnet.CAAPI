@@ -3,12 +3,6 @@ using org.kdtnet.CAAPI.Common.Utility;
 
 namespace org.kdtnet.CAAPI.Common.Data.RestApi;
 
-public enum EAsymmetricKeyType
-{
-    Rsa2048,
-    Rsa4096,
-}
-
 public class CreateCertificateAuthorityRequest : IValidateable
 {
     public required string UniqueId { get; set; }
@@ -18,11 +12,7 @@ public class CreateCertificateAuthorityRequest : IValidateable
     
     public void Validate()
     {
-        ValidationHelper.AssertStringNotNull(UniqueId, nameof(UniqueId), true);
-        ValidationHelper.AssertStringNotNull(AsymmetricPrivateKeyPassphrase, nameof(AsymmetricPrivateKeyPassphrase), true);
+        ValidationHelper.AssertStringNotNull(UniqueId, true);
+        ValidationHelper.AssertStringNotNull(AsymmetricPrivateKeyPassphrase, true);
     }
-}
-
-public class CreateCertificateAuthorityResponse
-{
 }

@@ -20,3 +20,25 @@ public class ValidationException : ApiDisplayableException
     {
     }
 }
+
+public abstract class DbException : Exception
+{
+    public DbException(string message, Exception? innerException) : base(message, innerException) { }
+}
+
+public class DbNullColumnException : DbException
+{
+    public DbNullColumnException(string columnName, Exception? innerException)
+        : base($"Null value in column: {columnName}", innerException) { }
+    public DbNullColumnException(string columnName)
+        : this(columnName, null) { }
+}
+
+public class DbEnumFormatException : DbException
+{
+    public DbEnumFormatException(string columnName, Type type, Exception? innerException)
+        : base($"Cannot convert value in column: {columnName} to enum type {type}", innerException) { }
+
+    public DbEnumFormatException(string columnName, Type type)
+        : this(columnName, type, null) { }
+}

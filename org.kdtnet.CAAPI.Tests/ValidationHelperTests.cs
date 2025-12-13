@@ -21,15 +21,15 @@ public class ValidationHelperTests
     [TestCategory("ValidationHelper.String.HappyPath")]
     public void AssertStringNotNull()
     {
-        ValidationHelper.AssertStringNotNull("xxx", "testValue", false);
-        ValidationHelper.AssertStringNotNull(string.Empty, "testValue", false);
-        ValidationHelper.AssertStringNotNull(" ", "testValue", false);
+        ValidationHelper.AssertStringNotNull("xxx", false);
+        ValidationHelper.AssertStringNotNull(string.Empty, false);
+        ValidationHelper.AssertStringNotNull(" ", false);
         
-        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(null, "testValue", true));
-        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(null, "testValue", false));
+        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(null, true));
+        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(null, false));
         
-        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(string.Empty, "testValue", true));
-        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(" ", "testValue", true));
+        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(string.Empty, true));
+        Assert.ThrowsException<ValidationException>(() => ValidationHelper.AssertStringNotNull(" ", true));
     }
     
     #endregion
@@ -40,8 +40,8 @@ public class ValidationHelperTests
     [TestCategory("ValidationHelper.String.HappyPath")]
     public void AssertStringNotNull_NullPropertyName()
     {
-        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertStringNotNull("XXXX", null!, true));
-        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertStringNotNull("XXXX", null!, false));
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertStringNotNull("XXXX", true, null!));
+        Assert.ThrowsException<ArgumentNullException>(() => ValidationHelper.AssertStringNotNull("XXXX", false, null!));
     }
     
     #endregion
