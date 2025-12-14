@@ -2,7 +2,7 @@ using org.kdtnet.CAAPI.Common.Data.DbEntity;
 
 namespace org.kdtnet.CAAPI.Common.Abstraction;
 
-public interface IDataStore
+public interface IDataStore : IDisposable
 {
     #region Transaction
     

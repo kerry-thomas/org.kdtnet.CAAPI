@@ -54,5 +54,11 @@ namespace org.kdtnet.CAAPI.Tests
         #endregion
 
         #endregion
+        
+        #region Initialization Tests
+        
+        #warning Use SQLite in-memory DB
+        
+        #endregion
     }
 }
