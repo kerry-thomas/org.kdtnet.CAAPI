@@ -32,14 +32,51 @@ public class SqliteDataStoreTransaction : IDataStoreTransaction
 
 public class SqliteDataStore : IDataStore
 {
+    private readonly object _lockObject = new();
+    private IConfigurationSource ConfigurationSource { get; set; }
+    
+    private SqliteConnection? InternalConnection { get; set; }
+    public SqliteDataStore(IConfigurationSource configurationSource)
+    {
+        ConfigurationSource = configurationSource ?? throw new ArgumentNullException(nameof(configurationSource));
+    }
+
     public void Dispose()
     {
-        // TODO release managed resources here
+        if (InternalConnection == null)
+            return;
+        InternalConnection.Dispose();
+        InternalConnection = null;
+    }
+
+    private void Init()
+    {
+        lock (_lockObject)
+        {
+            if (InternalConnection != null)
+                return;
+            
+            SqliteConnection? tInternalConnection = null;
+            try
+            {
+                tInternalConnection = new SqliteConnection(ConfigurationSource.ConfigObject.DataStore.ConnectionString);
+                tInternalConnection.Open();
+                InternalConnection = tInternalConnection;
+            }
+            catch
+            {
+                tInternalConnection?.Dispose();
+                throw;
+            }
+        }
+
     }
 
     public IDataStoreTransaction BeginTransaction()
     {
-        throw new NotImplementedException();
+        Init();
+
+        return new SqliteDataStoreTransaction(InternalConnection!);
     }
 
     public bool PersistUser(DbUser user)

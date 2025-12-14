@@ -25,6 +25,10 @@ public class LoggerTests
                 Logging = new ApplicationConfigurationLogging()
                 {
                     Level = ELogLevel.Info
+                },
+                DataStore = new ApplicationConfigurationDataStore()
+                {
+                    ConnectionString = "test",
                 }
             }
         );

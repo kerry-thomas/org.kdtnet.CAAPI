@@ -21,6 +21,10 @@ public class ConfigurationDataTests
             Logging = new ApplicationConfigurationLogging()
             {
                 Level = ELogLevel.Info,
+            },
+            DataStore = new ApplicationConfigurationDataStore()
+            {
+                ConnectionString = "test",
             }
         };
     }
@@ -46,6 +50,10 @@ public class ConfigurationDataTests
             Logging = new ApplicationConfigurationLogging()
             {
                 Level = ELogLevel.Info,
+            },
+            DataStore = new ApplicationConfigurationDataStore()
+            {
+                ConnectionString = "test",
             }
         };
         cfg.Validate();
@@ -59,11 +67,23 @@ public class ConfigurationDataTests
     [TestCategory("ConfigurationData.Validation.GrumpyPath")]
     public void ValidateFailure()
     {
-        var cfg = new ApplicationConfiguration()
+        var cfg1 = new ApplicationConfiguration()
         {
-            Logging = null!
+            Logging = null!,
+            DataStore = new ApplicationConfigurationDataStore()
+            {
+                ConnectionString = "test",
+            }
         };
-        Assert.ThrowsException<ValidationException>(() => cfg.Validate());
+        Assert.ThrowsException<ValidationException>(() => cfg1.Validate());
+        
+        var cfg2 = new ApplicationConfiguration()
+        {
+            Logging = new ApplicationConfigurationLogging()
+                { Level =  ELogLevel.Info },
+            DataStore = null!
+        };
+        Assert.ThrowsException<ValidationException>(() => cfg2.Validate());
     }
 
     #endregion

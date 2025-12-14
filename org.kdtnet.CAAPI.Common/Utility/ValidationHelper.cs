@@ -5,6 +5,11 @@ namespace org.kdtnet.CAAPI.Common.Utility;
 
 public static class ValidationHelper
 {
+    public static void AssertStringNotNull(string? value, [CallerArgumentExpression(nameof(value))] string? propertyName = null )
+    {
+        AssertStringNotNull(value, true, propertyName);
+    }
+
     public static void AssertStringNotNull(string? value, bool blankOrEmptyIsNull, [CallerArgumentExpression(nameof(value))] string? propertyName = null )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);

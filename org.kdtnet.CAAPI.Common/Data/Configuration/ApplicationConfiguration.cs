@@ -6,9 +6,23 @@ namespace org.kdtnet.CAAPI.Common.Data.Configuration;
 public class ApplicationConfiguration : IValidateable
 {
     public required ApplicationConfigurationLogging Logging { get; init; }
+    public required ApplicationConfigurationDataStore DataStore { get; init; }
+    
     public void Validate()
     {
-        ValidationHelper.AssertObjectNotNull(Logging, nameof(Logging));
+        ValidationHelper.AssertObjectNotNull(Logging);
+        ValidationHelper.AssertObjectNotNull(DataStore);
         Logging.Validate();
+        DataStore.Validate();
+    }
+}
+
+public class ApplicationConfigurationDataStore : IValidateable
+{
+    public required string ConnectionString { get; init; }
+    
+    public void Validate()
+    {
+        ValidationHelper.AssertStringNotNull(ConnectionString);
     }
 }
