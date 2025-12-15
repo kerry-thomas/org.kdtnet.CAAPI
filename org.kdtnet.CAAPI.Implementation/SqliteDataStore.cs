@@ -34,8 +34,9 @@ public class SqliteDataStore : IDataStore
 {
     private readonly object _lockObject = new();
     private IConfigurationSource ConfigurationSource { get; set; }
-    
+
     private SqliteConnection? InternalConnection { get; set; }
+
     public SqliteDataStore(IConfigurationSource configurationSource)
     {
         ConfigurationSource = configurationSource ?? throw new ArgumentNullException(nameof(configurationSource));
@@ -55,7 +56,7 @@ public class SqliteDataStore : IDataStore
         {
             if (InternalConnection != null)
                 return;
-            
+
             SqliteConnection? tInternalConnection = null;
             try
             {
@@ -82,13 +83,14 @@ public class SqliteDataStore : IDataStore
         using (var tx = InternalConnection!.BeginTransaction())
         {
             CreateUserTableIfNeeded(tx);
+            CreateRoleTableIfNeeded(tx);
 
             tx.Commit();
         }
     }
-    
+
     #region DDL SQL
-    
+
     #region Create Table Statements
 
     private const string c__Sql_Ddl_CreateTableUser =
@@ -98,14 +100,25 @@ public class SqliteDataStore : IDataStore
 	        ""IsActive""	INTEGER NOT NULL,
 	        PRIMARY KEY(""UserId"")
                 )  ";
-    
+
+    private const string c__Sql_Ddl_CreateTableRole = @"CREATE TABLE ""Role"" (
+	        ""RoleId""	TEXT NOT NULL,
+	        ""FriendlyName""	TEXT NOT NULL,
+	        PRIMARY KEY(""RoleId"")
+            );";
+
     #endregion
-    
+
     #endregion
 
     private void CreateUserTableIfNeeded(SqliteTransaction tx)
     {
         if (!ExistsTable("User", tx)) RunDdl(c__Sql_Ddl_CreateTableUser, tx);
+    }
+
+    private void CreateRoleTableIfNeeded(SqliteTransaction tx)
+    {
+        if (!ExistsTable("Role", tx)) RunDdl(c__Sql_Ddl_CreateTableRole, tx);
     }
 
     private void RunDdl(string ddlSql, SqliteTransaction tx)
@@ -115,7 +128,7 @@ public class SqliteDataStore : IDataStore
             cmd.CommandText = ddlSql;
             cmd.Transaction = tx;
             cmd.ExecuteNonQuery();
-        }       
+        }
     }
 
     private bool ExistsTable(string tableName, SqliteTransaction tx)
@@ -162,10 +175,11 @@ public class SqliteDataStore : IDataStore
         ArgumentNullException.ThrowIfNull(user);
 
         Init();
-        
+
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "insert into User (UserId, FriendlyName, IsActive) VALUES (@userId, @friendlyName, @isActive)";
+            cmd.CommandText =
+                "insert into User (UserId, FriendlyName, IsActive) VALUES (@userId, @friendlyName, @isActive)";
             cmd.Parameters.AddWithValue("@userId", user.UserId);
             cmd.Parameters.AddWithValue("@friendlyName", user.FriendlyName);
             cmd.Parameters.AddWithValue("@isActive", user.UserId);
@@ -181,7 +195,7 @@ public class SqliteDataStore : IDataStore
         ArgumentNullException.ThrowIfNull(user);
 
         Init();
-        
+
         using (var cmd = InternalConnection!.CreateCommand())
         {
             cmd.CommandText = "update User SET FriendlyName=@friendlyName, IsActive=@isActive where UserId=@userId";
@@ -200,7 +214,7 @@ public class SqliteDataStore : IDataStore
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
         Init();
-        
+
         using (var cmd = InternalConnection!.CreateCommand())
         {
             cmd.CommandText = "select * from User where UserId = @userId";
@@ -221,12 +235,12 @@ public class SqliteDataStore : IDataStore
         ArgumentNullException.ThrowIfNull(userId);
 
         Init();
-        
+
         using (var cmd = InternalConnection!.CreateCommand())
         {
             cmd.CommandText = "select count(1) from User where UserId = @userId";
             cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Transaction = tx;  
+            cmd.Transaction = tx;
 
             var count = Convert.ToInt32(cmd.ExecuteScalar());
             return count > 0;
@@ -238,7 +252,7 @@ public class SqliteDataStore : IDataStore
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
         Init();
-        
+
         using (var cmd = InternalConnection!.CreateCommand())
         {
             cmd.CommandText = "delete from User where UserId = @userId";
@@ -248,19 +262,113 @@ public class SqliteDataStore : IDataStore
         }
     }
 
-    public bool PersistRole(DbRole user)
+    public bool PersistRole(DbRole role)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(role);
+
+        Init();
+
+        using (var tx = InternalConnection!.BeginTransaction())
+        {
+            var returnValue = ExistsRole(role.RoleId, tx);
+            if (returnValue)
+                UpdateRole(role, tx);
+            else
+                InsertRole(role, tx);
+
+            tx.Commit();
+
+            return returnValue;
+        }
     }
 
-    public DbUser FetchRole(string userId)
+    private void InsertRole(DbRole role, SqliteTransaction? tx)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(role);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "insert into Role (RoleId, FriendlyName) VALUES (@roleId, @friendlyName)";
+            cmd.Parameters.AddWithValue("@roleId", role.RoleId);
+            cmd.Parameters.AddWithValue("@friendlyName", role.FriendlyName);
+
+            cmd.Transaction = tx;
+
+            cmd.ExecuteNonQuery();
+        }
     }
 
-    public void DeleteRole(string userId)
+    private void UpdateRole(DbRole role, SqliteTransaction? tx)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(role);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "update Role SET FriendlyName=@friendlyName where RoleId=@roleId";
+            cmd.Parameters.AddWithValue("@friendlyName", role.FriendlyName);
+            cmd.Parameters.AddWithValue("@roleId", role.RoleId);
+
+            cmd.Transaction = tx;
+
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    private bool ExistsRole(string roleId, SqliteTransaction? tx)
+    {
+        ArgumentNullException.ThrowIfNull(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "select count(1) from Role where RoleId = @roleId";
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+            cmd.Transaction = tx;
+
+            var count = Convert.ToInt32(cmd.ExecuteScalar());
+            return count > 0;
+        }
+    }
+
+    public DbRole FetchRole(string roleId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "select * from Role where RoleId = @roleId";
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                    return DbRole.CreateFromDataReader(reader);
+                else
+                    return null;
+            }
+        }
+    }
+
+    public void DeleteRole(string roleId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "delete from Role where RoleId = @roleId";
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+
+            cmd.ExecuteNonQuery();
+        }
     }
 
     public bool PersistUserRole(DbUserRole userRole)

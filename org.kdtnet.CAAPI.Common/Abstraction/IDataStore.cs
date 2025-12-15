@@ -20,9 +20,9 @@ public interface IDataStore : IDisposable
     
     #region Role
     
-    bool PersistRole(DbRole user);
-    DbUser FetchRole(string userId);
-    void DeleteRole(string userId);
+    bool PersistRole(DbRole role);
+    DbRole FetchRole(string roleId);
+    void DeleteRole(string roleId);
     
     #endregion
     
