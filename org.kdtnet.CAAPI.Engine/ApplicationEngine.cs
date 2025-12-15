@@ -14,4 +14,9 @@ public class ApplicationEngine
         ConfigurationSource = configurationSource ?? throw new ArgumentNullException(nameof(configurationSource));
         DataStore = dataStore ?? throw new ArgumentNullException(nameof(dataStore));
     }
+
+    public void Initialize()
+    {
+        DataStore.Initialize();
+    }
 }

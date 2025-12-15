@@ -13,7 +13,7 @@ public interface IDataStore : IDisposable
     #region User
     
     bool PersistUser(DbUser user);
-    DbUser FetchUser(string userId);
+    DbUser? FetchUser(string userId);
     void DeleteUser(string userId);
     
     #endregion
@@ -33,4 +33,6 @@ public interface IDataStore : IDisposable
     void DeleteUserRole(string userId, string roleId);
     
     #endregion
+
+    void Initialize();
 }

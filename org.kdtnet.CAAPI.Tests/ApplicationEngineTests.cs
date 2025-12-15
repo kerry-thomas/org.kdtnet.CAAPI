@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Moq;
 using org.kdtnet.CAAPI.Common.Abstraction;
+using org.kdtnet.CAAPI.Common.Data.Configuration;
 using org.kdtnet.CAAPI.Engine;
+using org.kdtnet.CAAPI.Implementation;
 
 namespace org.kdtnet.CAAPI.Tests
 {
@@ -12,14 +14,26 @@ namespace org.kdtnet.CAAPI.Tests
     {
         private Mock<ILogger>? MockLogger { get; set; }
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
-        private Mock<IDataStore>? MockDataStore { get; set; }
+        private SqliteDataStore? TestDataStore { get; set; }
 
         [TestInitialize]
         public void BeforeEachTest()
         {
             MockLogger = new Mock<ILogger>();
             MockConfigurationSource = new Mock<IConfigurationSource>();
-            MockDataStore = new Mock<IDataStore>();
+            MockConfigurationSource.Setup(c => c.ConfigObject).Returns(
+                new ApplicationConfiguration()
+                {
+                    Logging = new ApplicationConfigurationLogging()
+                    {
+                        Level = ELogLevel.Trace
+                    },
+                    DataStore = new ApplicationConfigurationDataStore()
+                    {
+                        ConnectionString = "Data Source=:memory:"
+                    }
+                });
+            TestDataStore = new SqliteDataStore(MockConfigurationSource.Object);
             Debug.WriteLine("test initialized");
         }
 
@@ -32,7 +46,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Ctor.HappyPath")]
         public void ConstructEngine()
         {
-            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, MockDataStore!.Object);
+            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
         }
 
         #endregion
@@ -44,9 +58,9 @@ namespace org.kdtnet.CAAPI.Tests
         public void ConstructEngineWithNulls()
         {
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, MockDataStore!.Object));
+                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, null!, MockDataStore!.Object));
+                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!));
             Assert.ThrowsException<ArgumentNullException>(() =>
                 _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!));
         }
@@ -54,11 +68,16 @@ namespace org.kdtnet.CAAPI.Tests
         #endregion
 
         #endregion
-        
+
         #region Initialization Tests
-        
-        #warning Use SQLite in-memory DB
-        
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Init.HappyPath")]
+        public void InitializeEngine()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            engine.Initialize();
+        }
         #endregion
     }
 }

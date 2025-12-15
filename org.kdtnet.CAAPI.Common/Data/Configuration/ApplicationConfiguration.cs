@@ -16,13 +16,3 @@ public class ApplicationConfiguration : IValidateable
         DataStore.Validate();
     }
 }
-
-public class ApplicationConfigurationDataStore : IValidateable
-{
-    public required string ConnectionString { get; init; }
-    
-    public void Validate()
-    {
-        ValidationHelper.AssertStringNotNull(ConnectionString);
-    }
-}

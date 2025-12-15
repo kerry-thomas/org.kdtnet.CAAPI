@@ -27,6 +27,7 @@
     <ItemGroup>
       <ProjectReference Include="..\org.kdtnet.CAAPI.Common\org.kdtnet.CAAPI.Common.csproj" />
       <ProjectReference Include="..\org.kdtnet.CAAPI.Engine\org.kdtnet.CAAPI.Engine.csproj" />
+      <ProjectReference Include="..\org.kdtnet.CAAPI.Implementation\org.kdtnet.CAAPI.Implementation.csproj" />
     </ItemGroup>
 
 </Project>
