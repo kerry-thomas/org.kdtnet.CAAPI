@@ -335,7 +335,7 @@ public class SqliteDataStore : IDataStore
         }
     }
 
-    public DbRole FetchRole(string roleId)
+    public DbRole? FetchRole(string roleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
 
@@ -373,16 +373,93 @@ public class SqliteDataStore : IDataStore
 
     public bool PersistUserRole(DbUserRole userRole)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(userRole);
+
+        Init();
+
+        using (var tx = InternalConnection!.BeginTransaction())
+        {
+            var returnValue = ExistsUserRole(userRole.UserId, userRole.RoleId, tx);
+            if (!returnValue)
+                InsertUserRole(userRole, tx);
+
+            tx.Commit();
+
+            return returnValue;
+        }
+    }
+    
+    private bool ExistsUserRole(string userId, string roleId, SqliteTransaction? tx)
+    {
+        ArgumentNullException.ThrowIfNull(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "select count(1) from UserRole where UserId = @userId and RoleId = @roleId";
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+            cmd.Transaction = tx;
+
+            var count = Convert.ToInt32(cmd.ExecuteScalar());
+            return count > 0;
+        }
+    }
+    
+    private void InsertUserRole(DbUserRole userRole, SqliteTransaction? tx)
+    {
+        ArgumentNullException.ThrowIfNull(userRole);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "insert into UserRole (UserId, RoleId) VALUES (@userId, @roleId)";
+            cmd.Parameters.AddWithValue("@userId", userRole.UserId);
+            cmd.Parameters.AddWithValue("@roleId", userRole.RoleId);
+
+            cmd.Transaction = tx;
+
+            cmd.ExecuteNonQuery();
+        }
     }
 
-    public DbUserRole FetchUserRole(string userId, string roleId)
+    public DbUserRole? FetchUserRole(string userId, string roleId)
     {
-        throw new NotImplementedException();
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "select * from UserRole where UserId = @userId and RoleId = @roleId";
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                    return DbUserRole.CreateFromDataReader(reader);
+                else
+                    return null;
+            }
+        }
     }
 
     public void DeleteUserRole(string userId, string roleId)
     {
-        throw new NotImplementedException();
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "delete from UserRole where UserId = @userId and RoleId = @roleId";
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+
+            cmd.ExecuteNonQuery();
+        }
     }
 }
