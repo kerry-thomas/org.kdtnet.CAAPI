@@ -6,12 +6,13 @@ public interface IDataStore : IDisposable
 {
     #region Transaction
     
-    IDataStoreTransaction BeginTransaction();
+    void TransactionWrap(Func<bool> callback);
     
     #endregion
     
     #region User
     
+    bool ExistsUser(string dbUserUserId);
     bool PersistUser(DbUser user);
     DbUser? FetchUser(string userId);
     void DeleteUser(string userId);
@@ -20,6 +21,7 @@ public interface IDataStore : IDisposable
     
     #region Role
     
+    bool ExistsRole(string dbUserUserId);
     bool PersistRole(DbRole role);
     DbRole? FetchRole(string roleId);
     void DeleteRole(string roleId);
@@ -28,6 +30,7 @@ public interface IDataStore : IDisposable
     
     #region UserRole
     
+    public bool ExistsUserRole(string userId, string roleId);
     bool PersistUserRole(DbUserRole userRole);
     DbUserRole? FetchUserRole(string userId, string roleId);
     void DeleteUserRole(string userId, string roleId);
@@ -35,4 +38,5 @@ public interface IDataStore : IDisposable
     #endregion
 
     void Initialize();
+
 }

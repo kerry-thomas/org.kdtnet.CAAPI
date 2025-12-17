@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Moq;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Data.Configuration;
+using org.kdtnet.CAAPI.Common.Data.DbEntity;
 using org.kdtnet.CAAPI.Engine;
 using org.kdtnet.CAAPI.Implementation;
 
@@ -78,6 +79,42 @@ namespace org.kdtnet.CAAPI.Tests
             var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
             engine.Initialize();
         }
+
+        #endregion
+        
+        #region User Tests
+        
+        #region Happy Path
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.User.HappyPath")]
+        public void CreateUserInRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testUser = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
+            engine.Initialize();
+            engine.CreateUserInRole("r.system.admin",testUser);
+            Assert.IsTrue(engine.ExistsUser(testUser.UserId));
+        }
+
+        #endregion
+        
+        #region Grumpy Path
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.User.HappyPath")]
+        public void CreateDuplicateUserInRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testUser = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
+            var testUserDupe = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
+            engine.Initialize();
+            engine.CreateUserInRole("r.system.admin",testUser);
+            Assert.ThrowsException<ApiGenericException>(() => engine.CreateUserInRole("r.system.admin",testUserDupe));
+        }
+        
+        #endregion
+        
         #endregion
     }
 }

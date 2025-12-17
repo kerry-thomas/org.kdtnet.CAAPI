@@ -8,6 +8,19 @@ public abstract class ApiDisplayableException : Exception
     }
 }
 
+public class ApiGenericException : ApiDisplayableException
+{
+    public ApiGenericException(string message, Exception? innerException = null)
+        : base(message, innerException)
+    {
+    }
+
+    public ApiGenericException(string message)
+        : this(message, null)
+    {
+    }
+}
+
 public class ValidationException : ApiDisplayableException
 {
     public ValidationException(string message, Exception? innerException = null)
