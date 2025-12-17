@@ -13,7 +13,8 @@ public interface IDataStore : IDisposable
     #region User
     
     bool ExistsUser(string dbUserUserId);
-    bool PersistUser(DbUser user);
+    public void InsertUser(DbUser user);
+    public void UpdateUser(DbUser user);
     DbUser? FetchUser(string userId);
     void DeleteUser(string userId);
     

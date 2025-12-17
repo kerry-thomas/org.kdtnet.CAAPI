@@ -81,9 +81,9 @@ namespace org.kdtnet.CAAPI.Tests
         }
 
         #endregion
-        
+
         #region User Tests
-        
+
         #region Happy Path
 
         [TestMethod]
@@ -93,28 +93,136 @@ namespace org.kdtnet.CAAPI.Tests
             var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
             var testUser = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
             engine.Initialize();
-            engine.CreateUserInRole("r.system.admin",testUser);
+            engine.CreateUserInRole("r.system.admin", testUser);
             Assert.IsTrue(engine.ExistsUser(testUser.UserId));
         }
 
         #endregion
-        
+
         #region Grumpy Path
 
         [TestMethod]
-        [TestCategory("ApplicationEngine.User.HappyPath")]
+        [TestCategory("ApplicationEngine.User.GrumpyPath")]
         public void CreateDuplicateUserInRole()
         {
             var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
             var testUser = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
             var testUserDupe = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
             engine.Initialize();
-            engine.CreateUserInRole("r.system.admin",testUser);
-            Assert.ThrowsException<ApiGenericException>(() => engine.CreateUserInRole("r.system.admin",testUserDupe));
+            engine.CreateUserInRole("r.system.admin", testUser);
+            Assert.ThrowsException<ApiGenericException>(() => engine.CreateUserInRole("r.system.admin", testUserDupe));
+        }
+
+        #endregion
+
+        #endregion
+
+        #region UserRole Tests
+
+        #region Happy Path
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.HappyPath")]
+        public void AddUsersToRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+
+            engine.Initialize();
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            engine.AddUserIdsToRole("r.test", ["charlie.brown", "sally.brown"]);
+            Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
+            Assert.IsTrue(engine.ExistsUser(testUser1.UserId));
+            Assert.IsTrue(engine.ExistsUser(testUser2.UserId));
+            Assert.IsTrue(engine.ExistsUserInRole(testUser1.UserId, testRole.RoleId));
+            Assert.IsTrue(engine.ExistsUserInRole(testUser2.UserId, testRole.RoleId));
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.HappyPath")]
+        public void AddNullAndEmptyListToRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+
+            engine.Initialize();
+            engine.CreateRole(testRole);
+
+            engine.AddUserIdsToRole(testRole.RoleId, null!);
+            engine.AddUserIdsToRole(testRole.RoleId , []);
         }
         
         #endregion
+
+        #region Grumpy Path
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void AddNonexistentUserToRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+
+            engine.Initialize();
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            engine.CreateRole(testRole);
+            Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole("r.test", ["user.nonexistent"]));
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void AddUserToNonexistentRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+
+            engine.Initialize();
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole(testRole.RoleId + "X", ["charlie.brown", "sally.brown"]));
+        }
         
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void AddNullUserIdToRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+
+            engine.Initialize();
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole(testRole.RoleId , ["charlie.brown", null!]));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void AddDuplicateUserIdToRole()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+
+            engine.Initialize();
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole(testRole.RoleId , [testUser1.UserId, testUser1.UserId]));
+        }
+        
+        #endregion
+
         #endregion
     }
 }

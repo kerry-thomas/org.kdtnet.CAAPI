@@ -164,6 +164,7 @@ public class SqliteDataStore : IDataStore
         }
     }
 
+    #warning kill this
     public bool PersistUser(DbUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -179,7 +180,7 @@ public class SqliteDataStore : IDataStore
         return returnValue;
     }
 
-    private void UpdateUser(DbUser user)
+    public void UpdateUser(DbUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -198,7 +199,7 @@ public class SqliteDataStore : IDataStore
         }
     }
 
-    private void InsertUser(DbUser user)
+    public void InsertUser(DbUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
 
