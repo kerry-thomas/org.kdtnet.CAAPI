@@ -190,7 +190,7 @@ public class SqliteDataStore : IDataStore
         {
             cmd.CommandText = "update User SET FriendlyName=@friendlyName, IsActive=@isActive where UserId=@userId";
             cmd.Parameters.AddWithValue("@friendlyName", user.FriendlyName);
-            cmd.Parameters.AddWithValue("@isActive", user.UserId);
+            cmd.Parameters.AddWithValue("@isActive", user.IsActive);
             cmd.Parameters.AddWithValue("@userId", user.UserId);
 
             cmd.Transaction = CurrentTransaction;
@@ -211,7 +211,7 @@ public class SqliteDataStore : IDataStore
                 "insert into User (UserId, FriendlyName, IsActive) VALUES (@userId, @friendlyName, @isActive)";
             cmd.Parameters.AddWithValue("@userId", user.UserId);
             cmd.Parameters.AddWithValue("@friendlyName", user.FriendlyName);
-            cmd.Parameters.AddWithValue("@isActive", user.UserId);
+            cmd.Parameters.AddWithValue("@isActive", user.IsActive);
 
             cmd.Transaction = CurrentTransaction;
 
@@ -455,6 +455,24 @@ public class SqliteDataStore : IDataStore
                     return DbUserRole.CreateFromDataReader(reader);
                 else
                     return null;
+            }
+        }
+    }
+
+    public IEnumerable<DbUserRole> FetchAllUserRoles()
+    {
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "select * from UserRole";
+
+            cmd.Transaction = CurrentTransaction;
+
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                    yield return DbUserRole.CreateFromDataReader(reader);
             }
         }
     }

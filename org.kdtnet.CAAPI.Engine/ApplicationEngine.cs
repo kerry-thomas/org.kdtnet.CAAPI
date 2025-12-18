@@ -30,6 +30,10 @@ public class ApplicationEngine
         });
     }
     
+    #region Administration
+    
+    #region User
+    
     public void CreateUser(DbUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -39,26 +43,6 @@ public class ApplicationEngine
             throw new ApiGenericException($"User {user.UserId} already exists");
         
         DataStore.InsertUser(user);
-    }
-
-    public void CreateUserInRole(string roleId, DbUser dbUser)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
-        ArgumentNullException.ThrowIfNull(dbUser);
-        dbUser.Validate();
-        
-        DataStore.TransactionWrap(() =>
-        {
-            if (DataStore.ExistsUser(dbUser.UserId))
-                throw new ApiGenericException($"User {dbUser.UserId} already exists");
-            if(!DataStore.ExistsRole(roleId))
-                throw new ApiGenericException($"Role {roleId} does not exist");
-            
-            DataStore.InsertUser(dbUser);
-            DataStore.PersistUserRole(new DbUserRole() { UserId = dbUser.UserId, RoleId = roleId });
-
-            return true;
-        });
     }
     
     public void AddUserIdsToRole(string roleId, IEnumerable<string> userIds)
@@ -80,8 +64,12 @@ public class ApplicationEngine
                     throw new ApiGenericException($"User {userId} does not exist");
                 if(DataStore.ExistsUserRole(userId, roleId))
                     throw new ApiGenericException($"user {userId} already exists in  role {roleId}");
-                    
-                DataStore.PersistUserRole(new DbUserRole() { UserId = userId, RoleId = roleId });
+
+                var newUserRole = new DbUserRole() { UserId = userId, RoleId = roleId };
+                newUserRole.Validate();
+                DataStore.PersistUserRole(newUserRole);
+                //
+                // DataStore.PersistUserRole(new DbUserRole() { UserId = userId, RoleId = roleId });
             }
         
             return true;
@@ -94,6 +82,17 @@ public class ApplicationEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         return DataStore.ExistsUser(userId);
     }
+
+
+    public DbUser? FetchUser(string userId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        return DataStore.FetchUser(userId);
+    }
+    
+    #endregion
+
+    #region Role
 
     public bool ExistsRole(string roleId)
     {
@@ -119,4 +118,23 @@ public class ApplicationEngine
         
         DataStore.PersistRole(role);
     }
+
+    public DbRole? FetchRole(string roleId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+        return DataStore.FetchRole(roleId);
+    }
+    
+    #endregion
+    
+    #region UserRole
+
+    public IEnumerable<DbUserRole> FetchAllUserRoles()
+    {
+        return DataStore.FetchAllUserRoles();
+    }
+    
+    #endregion
+    
+    #endregion
 }

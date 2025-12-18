@@ -35,6 +35,7 @@ public interface IDataStore : IDisposable
     bool PersistUserRole(DbUserRole userRole);
     DbUserRole? FetchUserRole(string userId, string roleId);
     void DeleteUserRole(string userId, string roleId);
+    IEnumerable<DbUserRole> FetchAllUserRoles();
     
     #endregion
 
