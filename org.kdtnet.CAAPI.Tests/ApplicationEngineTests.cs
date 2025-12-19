@@ -9,6 +9,13 @@ using org.kdtnet.CAAPI.Implementation;
 
 namespace org.kdtnet.CAAPI.Tests
 {
+    public class TestingActingUserIdentitySource : IActingUserIdentitySource
+    {
+        public string UserId { get; set; } = ApplicationEngine.c__SystemAdmin_Builtin_User;
+    }
+    
+    
+    
     [ExcludeFromCodeCoverage]
     [TestClass]
     public class ApplicationEngineTests
@@ -16,6 +23,7 @@ namespace org.kdtnet.CAAPI.Tests
         private Mock<ILogger>? MockLogger { get; set; }
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
         private SqliteDataStore? TestDataStore { get; set; }
+        private TestingActingUserIdentitySource? TestActingUserIdentitySource { get; set; }
 
         [TestInitialize]
         public void BeforeEachTest()
@@ -35,7 +43,16 @@ namespace org.kdtnet.CAAPI.Tests
                     }
                 });
             TestDataStore = new SqliteDataStore(MockConfigurationSource.Object);
+            TestActingUserIdentitySource = new TestingActingUserIdentitySource();
             Debug.WriteLine("test initialized");
+        }
+
+        private ApplicationEngine CreateDefaultEngine()
+        {
+            var returnValue = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!);
+            returnValue.Initialize();
+
+            return returnValue;
         }
 
 
@@ -47,7 +64,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Ctor.HappyPath")]
         public void ConstructEngine()
         {
-            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!);
         }
 
         #endregion
@@ -59,11 +76,13 @@ namespace org.kdtnet.CAAPI.Tests
         public void ConstructEngineWithNulls()
         {
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!));
+                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!));
+                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!, TestActingUserIdentitySource!));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!, TestActingUserIdentitySource!));
+            Assert.ThrowsException<ArgumentNullException>(() =>
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, null!));
         }
 
         #endregion
@@ -76,7 +95,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Init.HappyPath")]
         public void InitializeEngine()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!);
             engine.Initialize();
         }
 
@@ -90,9 +109,9 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.User.HappyPath")]
         public void CreateUser()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testUser = new DbUser() { UserId = "charlie.brown@peanuts.com", FriendlyName = "charlie brown", IsActive = true };
-            engine.Initialize();
             engine.CreateUser(testUser);
             Assert.IsTrue(engine.ExistsUser(testUser.UserId));
         }
@@ -101,9 +120,9 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.User.HappyPath")]
         public void CreateAndFetchUser()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testUser = new DbUser() { UserId = "charlie.brown@peanuts.com", FriendlyName = "charlie brown", IsActive = true };
-            engine.Initialize();
             engine.CreateUser(testUser);
             Assert.IsTrue(engine.ExistsUser(testUser.UserId));
             var user = engine.FetchUser(testUser.UserId);
@@ -121,10 +140,10 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.User.GrumpyPath")]
         public void CreateDuplicateUser()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testUser = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
             var testUserDupe = new DbUser() { UserId = "kdt", FriendlyName = "kerry thomas", IsActive = true };
-            engine.Initialize();
             engine.CreateUser(testUser);
             Assert.ThrowsException<ApiGenericException>(() => engine.CreateUser(testUserDupe));
         }
@@ -141,9 +160,9 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.User.HappyPath")]
         public void CreateRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
-            engine.Initialize();
             engine.CreateRole(testRole);
             Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
         }
@@ -152,9 +171,9 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.User.HappyPath")]
         public void CreateAndFetchRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
-            engine.Initialize();
             engine.CreateRole(testRole);
             Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
             var role = engine.FetchRole(testRole.RoleId);
@@ -171,10 +190,10 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.User.GrumpyPath")]
         public void CreateDuplicateRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
             var testRoleDupe = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
-            engine.Initialize();
             engine.CreateRole(testRole);
             Assert.ThrowsException<ApiGenericException>(() => engine.CreateRole(testRoleDupe));
         }
@@ -191,12 +210,12 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.UserRole.HappyPath")]
         public void AddUsersToRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
             var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
 
-            engine.Initialize();
             engine.CreateRole(testRole);
             engine.CreateUser(testUser1);
             engine.CreateUser(testUser2);
@@ -212,10 +231,10 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.UserRole.HappyPath")]
         public void AddNullAndEmptyListToRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
 
-            engine.Initialize();
             engine.CreateRole(testRole);
 
             engine.AddUserIdsToRole(testRole.RoleId, null!);
@@ -226,8 +245,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.UserRole.HappyPath")]
         public void FetchAllUserRoles()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
-            engine.Initialize();
+            var engine = CreateDefaultEngine();
 
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
@@ -252,9 +270,8 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
         public void AddNonexistentUserToRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
 
-            engine.Initialize();
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             engine.CreateRole(testRole);
             Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole("r.test", ["user.nonexistent"]));
@@ -264,12 +281,12 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
         public void AddUserToNonexistentRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
             var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
 
-            engine.Initialize();
             engine.CreateRole(testRole);
             engine.CreateUser(testUser1);
             engine.CreateUser(testUser2);
@@ -281,12 +298,12 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
         public void AddNullUserIdToRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
             var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
 
-            engine.Initialize();
             engine.CreateRole(testRole);
             engine.CreateUser(testUser1);
             engine.CreateUser(testUser2);
@@ -298,11 +315,11 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
         public void AddDuplicateUserIdToRole()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
 
-            engine.Initialize();
             engine.CreateRole(testRole);
             engine.CreateUser(testUser1);
             
@@ -321,13 +338,13 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.RolePrivilege.HappyPath")]
         public void RolePrivilegeBasicFunction()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var engine = CreateDefaultEngine();
+
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
             var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
             var testUser3 = new DbUser() { UserId = "lucy.vanpelt", FriendlyName = "Lucy Van Pelt", IsActive = true };
 
-            engine.Initialize();
             engine.CreateRole(testRole);
             engine.CreateUser(testUser1);
             engine.CreateUser(testUser2);
@@ -345,8 +362,89 @@ namespace org.kdtnet.CAAPI.Tests
         #endregion
         
         #region Grumpy Path
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RolePrivilege.GrumpyPath")]
+        public void RolePrivilegeBadArguments()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+            var testUser3 = new DbUser() { UserId = "lucy.vanpelt", FriendlyName = "Lucy Van Pelt", IsActive = true };
+
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            engine.AddUserIdsToRole(testRole.RoleId, [testUser1.UserId, testUser2.UserId]);
+            Assert.ThrowsException<ArgumentNullException>(() => engine.GrantRolePrivilege(null!, EPrivilege.SystemAdmin));
+            Assert.ThrowsException<ArgumentException>(() => engine.GrantRolePrivilege(string.Empty, EPrivilege.SystemAdmin));
+            Assert.ThrowsException<ArgumentException>(() => engine.GrantRolePrivilege(" ", EPrivilege.SystemAdmin));
+            engine.GrantRolePrivilege(testRole.RoleId, EPrivilege.SystemAdmin);
+            Assert.ThrowsException<ArgumentNullException>(() => engine.RevokeRolePrivilege(null!, EPrivilege.SystemAdmin));
+            Assert.ThrowsException<ArgumentException>(() => engine.RevokeRolePrivilege(string.Empty, EPrivilege.SystemAdmin));
+            Assert.ThrowsException<ArgumentException>(() => engine.RevokeRolePrivilege(" ", EPrivilege.SystemAdmin));
+        }
+        
         #endregion
         
         #endregion
+        
+        
+        #region Privilege Assertion Tests
+        
+        #region Happy Path
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.PrivilegeAssertion.HappyPath")]
+        public void PrivilegeAssertionBasicFunction()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+            var testUser3 = new DbUser() { UserId = "lucy.vanpelt", FriendlyName = "Lucy Van Pelt", IsActive = true };
+            var testUser4 = new DbUser() { UserId = "linus.vanpelt", FriendlyName = "Linus Van Pelt", IsActive = true };
+
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            engine.AddUserIdsToRole(ApplicationEngine.c__SystemAdmin_Builtin_Role, [testUser1.UserId]);
+            engine.AddUserIdsToRole(testRole.RoleId, [testUser2.UserId]);
+            engine.GrantRolePrivilege(testRole.RoleId, EPrivilege.SystemAdmin);
+            
+            TestActingUserIdentitySource!.UserId = testUser2.UserId;
+            engine.CreateUser(testUser3);
+            
+            TestActingUserIdentitySource!.UserId = testUser3.UserId;
+            Assert.ThrowsException<ApiAccessDeniedException>(() => engine.CreateUser(testUser4));
+            
+            TestActingUserIdentitySource!.UserId = testUser1.UserId;
+            engine.CreateUser(testUser4);
+        }
+        
+        #endregion
+        
+        #region Grumpy Path
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.PrivilegeAssertion.GrumpyPath")]
+        public void RolePrivilegeNullUserId()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+
+            TestActingUserIdentitySource!.UserId = null!;
+
+            Assert.ThrowsException<InvalidOperationException>(() => engine.CreateRole(testRole));
+        }
+        
+        #endregion
+        
+        #endregion
+
     }
 }

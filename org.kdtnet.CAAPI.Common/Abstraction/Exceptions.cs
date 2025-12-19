@@ -10,7 +10,7 @@ public abstract class ApiDisplayableException : Exception
 
 public class ApiGenericException : ApiDisplayableException
 {
-    public ApiGenericException(string message, Exception? innerException = null)
+    public ApiGenericException(string message, Exception? innerException)
         : base(message, innerException)
     {
     }
@@ -21,9 +21,22 @@ public class ApiGenericException : ApiDisplayableException
     }
 }
 
+public class ApiAccessDeniedException : ApiDisplayableException
+{
+    public ApiAccessDeniedException(Exception? innerException)
+        : base("Access denied", innerException)
+    {
+    }
+
+    public ApiAccessDeniedException()
+        : this((Exception) null!)
+    {
+    }
+}
+
 public class ValidationException : ApiDisplayableException
 {
-    public ValidationException(string message, Exception? innerException = null)
+    public ValidationException(string message, Exception? innerException)
         : base(message, innerException)
     {
     }

@@ -1,19 +1,26 @@
-﻿using org.kdtnet.CAAPI.Common.Abstraction;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
 
 namespace org.kdtnet.CAAPI.Engine;
 
 public class ApplicationEngine
 {
+    public const string c__SystemAdmin_Builtin_User = "u.system.admin";
+    public const string c__SystemAdmin_Builtin_Role = "r.system.admin";
+    
     private ILogger Logger { get; }
     private IConfigurationSource ConfigurationSource { get; }
     private IDataStore DataStore { get; }
+    private IActingUserIdentitySource ActingUserIdentitySource { get; }
 
-    public ApplicationEngine(ILogger logger, IConfigurationSource configurationSource, IDataStore dataStore)
+    public ApplicationEngine(ILogger logger, IConfigurationSource configurationSource, IDataStore dataStore, IActingUserIdentitySource actingUserIdentitySource)
     {
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         ConfigurationSource = configurationSource ?? throw new ArgumentNullException(nameof(configurationSource));
         DataStore = dataStore ?? throw new ArgumentNullException(nameof(dataStore));
+        ActingUserIdentitySource = actingUserIdentitySource ?? throw new ArgumentNullException(nameof(actingUserIdentitySource));
     }
 
     public void Initialize()
@@ -22,12 +29,27 @@ public class ApplicationEngine
         DataStore.TransactionWrap(() =>
         {
             DataStore.InsertUser(new DbUser()
-                { UserId = "u.system.admin", FriendlyName = "System Admin User", IsActive = false });
-            DataStore.PersistRole(new DbRole() { RoleId = "r.system.admin", FriendlyName = "System Admin Role" });
-            DataStore.PersistUserRole(new DbUserRole() { UserId = "u.system.admin", RoleId = "r.system.admin" });
+                { UserId = c__SystemAdmin_Builtin_User, FriendlyName = "System Admin User", IsActive = false });
+            DataStore.PersistRole(new DbRole() { RoleId = c__SystemAdmin_Builtin_Role, FriendlyName = "System Admin Role" });
+            DataStore.PersistUserRole(new DbUserRole() { UserId = c__SystemAdmin_Builtin_User, RoleId = c__SystemAdmin_Builtin_User });
 
             return true;
         });
+    }
+
+    private void AssertPrivilege(EPrivilege privilegeAsserted)
+    {
+        Debug.Assert(ActingUserIdentitySource != null);
+        
+        if(string.IsNullOrWhiteSpace(ActingUserIdentitySource.UserId))
+            throw new InvalidOperationException($"UserId from ActingUserIdentitySource is null/empty/blank");
+        
+        if (ActingUserIdentitySource.UserId == c__SystemAdmin_Builtin_User)
+            return;
+        if (DataStore.ExistsUserRole(ActingUserIdentitySource.UserId, c__SystemAdmin_Builtin_Role))
+            return;
+        if (!DataStore.ExistsUserInRoleWithPrivilege(ActingUserIdentitySource.UserId, privilegeAsserted.ToString()))
+            throw new ApiAccessDeniedException();
     }
     
     #region Administration
@@ -36,6 +58,7 @@ public class ApplicationEngine
     
     public void CreateUser(DbUser user)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentNullException.ThrowIfNull(user);
         user.Validate();
         
@@ -47,6 +70,7 @@ public class ApplicationEngine
     
     public void AddUserIdsToRole(string roleId, IEnumerable<string> userIds)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
         if (userIds == null! || userIds.Count() == 0)
             return;
@@ -79,6 +103,7 @@ public class ApplicationEngine
 
     public bool ExistsUser(string userId)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         return DataStore.ExistsUser(userId);
     }
@@ -86,6 +111,7 @@ public class ApplicationEngine
 
     public DbUser? FetchUser(string userId)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         return DataStore.FetchUser(userId);
     }
@@ -96,12 +122,14 @@ public class ApplicationEngine
 
     public bool ExistsRole(string roleId)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
         return DataStore.ExistsRole(roleId);
     }
 
     public bool ExistsUserInRole(string userId, string roleId)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
         
@@ -110,6 +138,7 @@ public class ApplicationEngine
 
     public void CreateRole(DbRole role)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentNullException.ThrowIfNull(role);
         role.Validate();
         
@@ -121,6 +150,7 @@ public class ApplicationEngine
 
     public DbRole? FetchRole(string roleId)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
         return DataStore.FetchRole(roleId);
     }
@@ -131,6 +161,7 @@ public class ApplicationEngine
 
     public IEnumerable<DbUserRole> FetchAllUserRoles()
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
         return DataStore.FetchAllUserRoles();
     }
     
@@ -140,44 +171,26 @@ public class ApplicationEngine
 
     public void GrantRolePrivilege(string roleId, EPrivilege privilege)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
         DataStore.InsertRolePrivilege(new DbRolePrivilege() { RoleId= roleId, PrivilegeId = privilege.ToString() });
     }
 
     public bool UserHasPrivilege(string userId, EPrivilege privilege)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         return DataStore.ExistsUserInRoleWithPrivilege(userId, privilege.ToString());
     }
 
     public void RevokeRolePrivilege(string roleId, EPrivilege privilege)
     {
+        AssertPrivilege(EPrivilege.SystemAdmin);
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
         DataStore.TransactionWrap(() =>
         {
             DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
             return true;
         });
     }
-}
-
-public enum EPrivilege
-{
-    SystemAdmin
-}
-
-public static class ApplicationLocus
-{
-    public static class Administration
-    {
-        public static class User
-        {
-            public static readonly string Create =$"{nameof(Administration)}.{nameof(User)}.{nameof(Create)}";
-            public static readonly string Update =$"{nameof(Administration)}.{nameof(User)}.{nameof(Update)}";
-            public static readonly string Delete =$"{nameof(Administration)}.{nameof(User)}.{nameof(Delete)}";
-        }
-
-        public static class Role
-        {
-            
-        }
-    }
-    
 }
