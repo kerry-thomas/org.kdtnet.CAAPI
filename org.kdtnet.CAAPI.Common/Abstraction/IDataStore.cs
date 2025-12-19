@@ -6,13 +6,27 @@ public interface IDataStore : IDisposable
 {
     #region Transaction
     
+    /// <summary>
+    /// Used when the transaction is committed or rolled back depending on whether application logic
+    /// succeeds or fails. The transaction is rolled back if any exception is thrown by the callback
+    /// function. 
+    /// </summary>
+    /// <param name="callback">A function containing DataStore operations that returns true if the
+    /// application logic succeeds, or false otherwise.</param>
     void TransactionWrap(Func<bool> callback);
+    
+    /// <summary>
+    /// Used when the transaction is committed or rolled back depending on whether any exception
+    /// is thrown by the callback function. 
+    /// </summary>
+    /// <param name="callback">An action containing DataStore operations.</param>
+    void TransactionWrap(Action callback);
     
     #endregion
     
     #region User
     
-    bool ExistsUser(string dbUserUserId);
+    bool ExistsUser(string userId);
     public void InsertUser(DbUser user);
     public void UpdateUser(DbUser user);
     DbUser? FetchUser(string userId);
@@ -22,7 +36,7 @@ public interface IDataStore : IDisposable
     
     #region Role
     
-    bool ExistsRole(string dbUserUserId);
+    bool ExistsRole(string roleId);
     bool PersistRole(DbRole role);
     DbRole? FetchRole(string roleId);
     void DeleteRole(string roleId);

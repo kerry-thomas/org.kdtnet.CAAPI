@@ -150,11 +150,34 @@ public class ApplicationEngine
 
     public void RevokeRolePrivilege(string roleId, EPrivilege privilege)
     {
-        DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
+        DataStore.TransactionWrap(() =>
+        {
+            DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
+            return true;
+        });
     }
 }
 
 public enum EPrivilege
 {
     SystemAdmin
+}
+
+public static class ApplicationLocus
+{
+    public static class Administration
+    {
+        public static class User
+        {
+            public static readonly string Create =$"{nameof(Administration)}.{nameof(User)}.{nameof(Create)}";
+            public static readonly string Update =$"{nameof(Administration)}.{nameof(User)}.{nameof(Update)}";
+            public static readonly string Delete =$"{nameof(Administration)}.{nameof(User)}.{nameof(Delete)}";
+        }
+
+        public static class Role
+        {
+            
+        }
+    }
+    
 }

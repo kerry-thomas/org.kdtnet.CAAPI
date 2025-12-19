@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
 using Microsoft.Data.Sqlite;
@@ -145,6 +146,66 @@ public class SqliteDataStore : IDataStore
 
     public void TransactionWrap(Func<bool> callback)
     {
+        // bool iCreatedTransaction = false;
+        //
+        // if (CurrentTransaction == null)
+        // {
+        //     CurrentTransaction = InternalConnection!.BeginTransaction();
+        //     iCreatedTransaction = true;
+        // }
+        //
+        // try
+        // {
+        //     var callbackResult = callback();
+        //     if (iCreatedTransaction)
+        //     {
+        //         if (callbackResult)
+        //             CurrentTransaction.Commit();
+        //         else
+        //             CurrentTransaction.Rollback();
+        //     }
+        // }
+        // catch
+        // {
+        //     if (iCreatedTransaction)
+        //         CurrentTransaction.Rollback();
+        //     throw;
+        // }
+        // finally
+        // {
+        //     if (iCreatedTransaction)
+        //         CurrentTransaction = null;
+        // }
+        
+        CoreTransactionWrap(iCreatedTransaction =>
+        {
+            var callbackResult = callback();
+            if (iCreatedTransaction)
+            {
+                Debug.Assert(CurrentTransaction != null);
+                if (callbackResult)
+                    CurrentTransaction.Commit();
+                else
+                    CurrentTransaction.Rollback();
+            }
+        });
+    }
+
+    public void TransactionWrap(Action callback)
+    {
+        CoreTransactionWrap(iCreatedTransaction =>
+        {
+            callback();
+            if (iCreatedTransaction)
+            {
+                Debug.Assert(CurrentTransaction != null);
+                CurrentTransaction.Commit();
+            }
+        });
+    }
+
+    private void CoreTransactionWrap(Action<bool> internalCallback)
+    {
         bool iCreatedTransaction = false;
 
         if (CurrentTransaction == null)
@@ -155,14 +216,7 @@ public class SqliteDataStore : IDataStore
 
         try
         {
-            var callbackResult = callback();
-            if (iCreatedTransaction)
-            {
-                if (callbackResult)
-                    CurrentTransaction.Commit();
-                else
-                    CurrentTransaction.Rollback();
-            }
+            internalCallback(iCreatedTransaction);
         }
         catch
         {
@@ -173,24 +227,11 @@ public class SqliteDataStore : IDataStore
         finally
         {
             if (iCreatedTransaction)
+            {
+                CurrentTransaction.Dispose();
                 CurrentTransaction = null;
+            }
         }
-    }
-
-    #warning kill this
-    public bool PersistUser(DbUser user)
-    {
-        ArgumentNullException.ThrowIfNull(user);
-
-        Init();
-
-        var returnValue = ExistsUser(user.UserId);
-        if (returnValue)
-            UpdateUser(user);
-        else
-            InsertUser(user);
-
-        return returnValue;
     }
 
     public void UpdateUser(DbUser user)
