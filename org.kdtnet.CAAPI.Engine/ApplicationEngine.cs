@@ -137,4 +137,24 @@ public class ApplicationEngine
     #endregion
     
     #endregion
+
+    public void GrantRolePrivilege(string roleId, EPrivilege privilege)
+    {
+        DataStore.InsertRolePrivilege(new DbRolePrivilege() { RoleId= roleId, PrivilegeId = privilege.ToString() });
+    }
+
+    public bool UserHasPrivilege(string userId, EPrivilege privilege)
+    {
+        return DataStore.ExistsUserInRoleWithPrivilege(userId, privilege.ToString());
+    }
+
+    public void RevokeRolePrivilege(string roleId, EPrivilege privilege)
+    {
+        DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
+    }
+}
+
+public enum EPrivilege
+{
+    SystemAdmin
 }

@@ -312,5 +312,41 @@ namespace org.kdtnet.CAAPI.Tests
         #endregion
 
         #endregion
+        
+        #region Role Privilege Tests
+        
+        #region Happy Path
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RolePrivilege.HappyPath")]
+        public void RolePrivilegeBasicFunction()
+        {
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!);
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+            var testUser3 = new DbUser() { UserId = "lucy.vanpelt", FriendlyName = "Lucy Van Pelt", IsActive = true };
+
+            engine.Initialize();
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            engine.AddUserIdsToRole(testRole.RoleId, [testUser1.UserId, testUser2.UserId]);
+            engine.GrantRolePrivilege(testRole.RoleId, EPrivilege.SystemAdmin);
+            Assert.IsTrue(engine.UserHasPrivilege(testUser1.UserId, EPrivilege.SystemAdmin));
+            Assert.IsTrue(engine.UserHasPrivilege(testUser2.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser3.UserId, EPrivilege.SystemAdmin));
+            engine.RevokeRolePrivilege(testRole.RoleId, EPrivilege.SystemAdmin);
+            Assert.IsFalse(engine.UserHasPrivilege(testUser1.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser2.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser3.UserId, EPrivilege.SystemAdmin));
+        }
+        
+        #endregion
+        
+        #region Grumpy Path
+        #endregion
+        
+        #endregion
     }
 }

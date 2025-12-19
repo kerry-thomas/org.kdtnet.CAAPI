@@ -1,4 +1,5 @@
-﻿using org.kdtnet.CAAPI.Common.Abstraction;
+﻿using System.Text;
+using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
 using Microsoft.Data.Sqlite;
 
@@ -60,6 +61,7 @@ public class SqliteDataStore : IDataStore
             CreateUserTableIfNeeded(tx);
             CreateRoleTableIfNeeded(tx);
             CreateUserRoleTableIfNeeded(tx);
+            CreateRolePrivilegeTableIfNeeded(tx);
 
             tx.Commit();
         }
@@ -89,6 +91,12 @@ public class SqliteDataStore : IDataStore
 	        PRIMARY KEY(""UserId"",""RoleId"" )
             );";
 
+    private const string c__Sql_Ddl_CreateTable_RolePrivilege = @"CREATE TABLE ""RolePrivilege"" (
+	        ""RoleId""	TEXT NOT NULL,
+	        ""PrivilegeId""	TEXT NOT NULL,
+	        PRIMARY KEY(""RoleId"",""PrivilegeId"" )
+            );";
+
     #endregion
 
     #endregion
@@ -106,6 +114,11 @@ public class SqliteDataStore : IDataStore
     private void CreateUserRoleTableIfNeeded(SqliteTransaction tx)
     {
         if (!ExistsTable("UserRole", tx)) RunDdl(c__Sql_Ddl_CreateTable_UserRole, tx);
+    }
+
+    private void CreateRolePrivilegeTableIfNeeded(SqliteTransaction tx)
+    {
+        if (!ExistsTable("RolePrivilege", tx)) RunDdl(c__Sql_Ddl_CreateTable_RolePrivilege, tx);
     }
 
     private void RunDdl(string ddlSql, SqliteTransaction tx)
@@ -384,6 +397,8 @@ public class SqliteDataStore : IDataStore
             cmd.ExecuteNonQuery();
         }
     }
+    
+    #region UserRole
 
     public bool PersistUserRole(DbUserRole userRole)
     {
@@ -479,6 +494,7 @@ public class SqliteDataStore : IDataStore
 
     public void DeleteUserRole(string userId, string roleId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
 
         Init();
@@ -494,4 +510,76 @@ public class SqliteDataStore : IDataStore
             cmd.ExecuteNonQuery();
         }
     }
+    
+    #endregion
+    
+    #region RolePrivilege
+    
+    public void InsertRolePrivilege(DbRolePrivilege rolePrivilege)
+    {
+        ArgumentNullException.ThrowIfNull(rolePrivilege);
+        rolePrivilege.Validate();
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "insert into RolePrivilege (RoleId, PrivilegeId) VALUES (@roleId, @privilegeId)";
+            cmd.Parameters.AddWithValue("@roleId", rolePrivilege.RoleId);
+            cmd.Parameters.AddWithValue("@privilegeId", rolePrivilege.PrivilegeId);
+
+            cmd.Transaction = CurrentTransaction;
+
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    public bool ExistsUserInRoleWithPrivilege(string userId, string privilegeId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(privilegeId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            var strSql = new StringBuilder();
+            strSql.Append(" select count(1)");
+            strSql.Append(" from RolePrivilege rp");
+            strSql.Append("   inner join UserRole ur on (rp.RoleId=ur.RoleId and rp.PrivilegeId=@privilegeId and ur.UserId=@userId)");
+            
+            cmd.CommandText = strSql.ToString();
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@privilegeId", privilegeId);
+
+            cmd.Transaction = CurrentTransaction;
+
+            var count = Convert.ToInt32(cmd.ExecuteScalar());
+            return count > 0;
+        }
+    }
+    
+    public void DeleteRolePrivilege(string roleId, string privilegeId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(privilegeId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            var strSql = new StringBuilder();
+            strSql.Append(" delete from RolePrivilege where RoleId=@roleId and PrivilegeId=@privilegeId");
+            
+            cmd.CommandText = strSql.ToString();
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+            cmd.Parameters.AddWithValue("@privilegeId", privilegeId);
+
+            cmd.Transaction = CurrentTransaction;
+
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    #endregion
 }

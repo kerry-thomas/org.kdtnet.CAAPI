@@ -38,7 +38,15 @@ public interface IDataStore : IDisposable
     IEnumerable<DbUserRole> FetchAllUserRoles();
     
     #endregion
+    
+    #region RolePrivilege
+
+    void InsertRolePrivilege(DbRolePrivilege rolePrivilege);
+    
+    #endregion
 
     void Initialize();
 
+    bool ExistsUserInRoleWithPrivilege(string userId, string privilegeId);
+    void DeleteRolePrivilege(string roleId, string privilegeId);
 }
