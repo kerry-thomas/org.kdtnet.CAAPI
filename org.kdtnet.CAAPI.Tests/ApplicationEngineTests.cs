@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Moq;
 using org.kdtnet.CAAPI.Common.Abstraction;
+using org.kdtnet.CAAPI.Common.Data.AuditLogging;
 using org.kdtnet.CAAPI.Common.Data.Configuration;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
 using org.kdtnet.CAAPI.Engine;
@@ -13,8 +14,15 @@ namespace org.kdtnet.CAAPI.Tests
     {
         public string UserId { get; set; } = ApplicationEngine.c__SystemAdmin_Builtin_User;
     }
-    
-    
+
+    public class TestingAuditLogProvider : IAuditLogProvider
+    {
+        public List<AuditLogEntry> LogEntries { get; set; } = [];
+        public void Audit(AuditLogEntry auditLogEntry)
+        {
+            LogEntries.Add(auditLogEntry);
+        }
+    }
     
     [ExcludeFromCodeCoverage]
     [TestClass]
@@ -24,6 +32,7 @@ namespace org.kdtnet.CAAPI.Tests
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
         private SqliteDataStore? TestDataStore { get; set; }
         private TestingActingUserIdentitySource? TestActingUserIdentitySource { get; set; }
+        private TestingAuditLogProvider? TestAuditLogProvider { get; set; }
 
         [TestInitialize]
         public void BeforeEachTest()
@@ -44,15 +53,25 @@ namespace org.kdtnet.CAAPI.Tests
                 });
             TestDataStore = new SqliteDataStore(MockConfigurationSource.Object);
             TestActingUserIdentitySource = new TestingActingUserIdentitySource();
+            TestAuditLogProvider = new TestingAuditLogProvider();
+            
             Debug.WriteLine("test initialized");
         }
 
         private ApplicationEngine CreateDefaultEngine()
         {
-            var returnValue = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!);
+            var returnValue = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditLogProvider!);
             returnValue.Initialize();
 
             return returnValue;
+        }
+
+        private void AssertAuditLogExists(string locus, string? actingUserId = null)
+        {
+            actingUserId ??= TestActingUserIdentitySource!.UserId;
+
+            Assert.IsTrue(TestAuditLogProvider!.LogEntries.Any((l) => l.ActingUserId == actingUserId && l.Locus == locus),
+                    $"Audit log does not exist for userid: [{actingUserId}] and locus: [{locus}]");
         }
 
 
@@ -64,7 +83,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Ctor.HappyPath")]
         public void ConstructEngine()
         {
-            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!);
+            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditLogProvider!);
         }
 
         #endregion
@@ -76,13 +95,15 @@ namespace org.kdtnet.CAAPI.Tests
         public void ConstructEngineWithNulls()
         {
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!));
+                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditLogProvider!));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!, TestActingUserIdentitySource!));
+                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!, TestActingUserIdentitySource!, TestAuditLogProvider!));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!, TestActingUserIdentitySource!));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!, TestActingUserIdentitySource!, TestAuditLogProvider!));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, null!));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, null!, TestAuditLogProvider!));
+            Assert.ThrowsException<ArgumentNullException>(() =>
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, null!));
         }
 
         #endregion
@@ -95,7 +116,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Init.HappyPath")]
         public void InitializeEngine()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!);
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditLogProvider!);
             engine.Initialize();
         }
 
@@ -114,6 +135,7 @@ namespace org.kdtnet.CAAPI.Tests
             var testUser = new DbUser() { UserId = "charlie.brown@peanuts.com", FriendlyName = "charlie brown", IsActive = true };
             engine.CreateUser(testUser);
             Assert.IsTrue(engine.ExistsUser(testUser.UserId));
+            AssertAuditLogExists(ApplicationLocus.Administration.User.Create);
         }
 
         [TestMethod]
@@ -126,6 +148,7 @@ namespace org.kdtnet.CAAPI.Tests
             engine.CreateUser(testUser);
             Assert.IsTrue(engine.ExistsUser(testUser.UserId));
             var user = engine.FetchUser(testUser.UserId);
+            AssertAuditLogExists(ApplicationLocus.Administration.User.Fetch);
             Assert.IsNotNull(user);
             Assert.AreEqual(testUser.UserId, user.UserId);
             Assert.AreEqual(testUser.FriendlyName, user.FriendlyName);
@@ -390,7 +413,6 @@ namespace org.kdtnet.CAAPI.Tests
         #endregion
         
         #endregion
-        
         
         #region Privilege Assertion Tests
         
