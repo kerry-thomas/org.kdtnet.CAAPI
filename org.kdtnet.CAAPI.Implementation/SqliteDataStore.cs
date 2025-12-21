@@ -176,7 +176,7 @@ public class SqliteDataStore : IDataStore
         //     if (iCreatedTransaction)
         //         CurrentTransaction = null;
         // }
-        
+
         CoreTransactionWrap(iCreatedTransaction =>
         {
             var callbackResult = callback();
@@ -438,7 +438,7 @@ public class SqliteDataStore : IDataStore
             cmd.ExecuteNonQuery();
         }
     }
-    
+
     #region UserRole
 
     public bool PersistUserRole(DbUserRole userRole)
@@ -551,11 +551,30 @@ public class SqliteDataStore : IDataStore
             cmd.ExecuteNonQuery();
         }
     }
-    
+
+    public IEnumerable<string> AllUserIdsWithPrivilege(string privilegeId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(privilegeId);
+        var strSql = new StringBuilder();
+        strSql.Append(" select userId");
+        strSql.Append(" from RolePrivilege rp");
+        strSql.Append("   inner join UserRole ur on (rp.RoleId = ur.RoleId)");
+        strSql.Append(" where rp.PrivilegeId = @privilegeId");
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            using (var rdr = cmd.ExecuteReader())
+            {
+                while (rdr.Read())
+                    yield return rdr.GetString(0);
+            }
+        }
+    }
+
     #endregion
-    
+
     #region RolePrivilege
-    
+
     public void InsertRolePrivilege(DbRolePrivilege rolePrivilege)
     {
         ArgumentNullException.ThrowIfNull(rolePrivilege);
@@ -587,8 +606,9 @@ public class SqliteDataStore : IDataStore
             var strSql = new StringBuilder();
             strSql.Append(" select count(1)");
             strSql.Append(" from RolePrivilege rp");
-            strSql.Append("   inner join UserRole ur on (rp.RoleId=ur.RoleId and rp.PrivilegeId=@privilegeId and ur.UserId=@userId)");
-            
+            strSql.Append(
+                "   inner join UserRole ur on (rp.RoleId=ur.RoleId and rp.PrivilegeId=@privilegeId and ur.UserId=@userId)");
+
             cmd.CommandText = strSql.ToString();
             cmd.Parameters.AddWithValue("@userId", userId);
             cmd.Parameters.AddWithValue("@privilegeId", privilegeId);
@@ -599,7 +619,7 @@ public class SqliteDataStore : IDataStore
             return count > 0;
         }
     }
-    
+
     public void DeleteRolePrivilege(string roleId, string privilegeId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
@@ -611,7 +631,7 @@ public class SqliteDataStore : IDataStore
         {
             var strSql = new StringBuilder();
             strSql.Append(" delete from RolePrivilege where RoleId=@roleId and PrivilegeId=@privilegeId");
-            
+
             cmd.CommandText = strSql.ToString();
             cmd.Parameters.AddWithValue("@roleId", roleId);
             cmd.Parameters.AddWithValue("@privilegeId", privilegeId);

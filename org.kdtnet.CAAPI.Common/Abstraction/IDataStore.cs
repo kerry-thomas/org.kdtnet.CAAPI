@@ -56,11 +56,12 @@ public interface IDataStore : IDisposable
     #region RolePrivilege
 
     void InsertRolePrivilege(DbRolePrivilege rolePrivilege);
+    bool ExistsUserInRoleWithPrivilege(string userId, string privilegeId);
+    void DeleteRolePrivilege(string roleId, string privilegeId);
+    IEnumerable<string> AllUserIdsWithPrivilege(string privilegeId);
     
     #endregion
 
     void Initialize();
 
-    bool ExistsUserInRoleWithPrivilege(string userId, string privilegeId);
-    void DeleteRolePrivilege(string roleId, string privilegeId);
 }
