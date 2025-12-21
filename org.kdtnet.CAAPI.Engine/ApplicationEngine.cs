@@ -2,8 +2,11 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
-using org.kdtnet.CAAPI.Common.Data.AuditLogging;
+using org.kdtnet.CAAPI.Common.Abstraction.Audit;
+using org.kdtnet.CAAPI.Common.Abstraction.Logging;
+using org.kdtnet.CAAPI.Common.Data.Audit;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
+using org.kdtnet.CAAPI.Common.Domain.Audit;
 
 namespace org.kdtnet.CAAPI.Engine;
 
@@ -16,15 +19,15 @@ public class ApplicationEngine
     private IConfigurationSource ConfigurationSource { get; }
     private IDataStore DataStore { get; }
     private IActingUserIdentitySource ActingUserIdentitySource { get; }
-    private IAuditLogProvider AuditLogProvider { get; }
+    private AuditWrapper AuditWrapper { get; }
 
-    public ApplicationEngine(ILogger logger, IConfigurationSource configurationSource, IDataStore dataStore, IActingUserIdentitySource actingUserIdentitySource, IAuditLogProvider  auditLogProvider)
+    public ApplicationEngine(ILogger logger, IConfigurationSource configurationSource, IDataStore dataStore, IActingUserIdentitySource actingUserIdentitySource, AuditWrapper  auditWrapper)
     {
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         ConfigurationSource = configurationSource ?? throw new ArgumentNullException(nameof(configurationSource));
         DataStore = dataStore ?? throw new ArgumentNullException(nameof(dataStore));
         ActingUserIdentitySource = actingUserIdentitySource ?? throw new ArgumentNullException(nameof(actingUserIdentitySource));
-        AuditLogProvider = auditLogProvider ?? throw new ArgumentNullException(nameof(auditLogProvider));
+        AuditWrapper = auditWrapper ?? throw new ArgumentNullException(nameof(auditWrapper));
     }
 
     public void Initialize()
@@ -41,67 +44,67 @@ public class ApplicationEngine
         });
     }
 
-    private void AuditWrap(string locus, string summary, string detail, Action<string> callback)
-    {
-        Debug.Assert(callback != null);
-        
-        var correlationId = Guid.NewGuid().ToString();
-
-        try
-        {
-            AuditLogProvider.Audit(new AuditLogEntry()
-            {
-                CorrelationId = correlationId,
-                ActingUserId = ActingUserIdentitySource.UserId,
-                EntryType = EAuditLogEntryType.Begin,
-                OccurrenceUtc = DateTime.UtcNow,
-                Locus = locus,
-                Summary = summary,
-                Detail = detail,
-            });
-
-            callback(correlationId);
-
-            AuditLogProvider.Audit(new AuditLogEntry()
-            {
-                CorrelationId = correlationId,
-                ActingUserId = ActingUserIdentitySource.UserId,
-                EntryType = EAuditLogEntryType.Success,
-                OccurrenceUtc = DateTime.UtcNow,
-                Locus = locus,
-                Summary = summary,
-                Detail = detail,
-            });
-        }
-        catch (Exception ex)
-        {
-            AuditLogProvider.Audit(new AuditLogEntry()
-            {
-                CorrelationId = correlationId,
-                ActingUserId = ActingUserIdentitySource.UserId,
-                EntryType = EAuditLogEntryType.Failure,
-                OccurrenceUtc = DateTime.UtcNow,
-                Locus = locus,
-                Summary = summary,
-                Detail = detail,
-            });
-            throw;
-        }
-
-    }
+    // private void AuditWrap(string locus, string summary, string detail, Action<string> callback)
+    // {
+    //     Debug.Assert(callback != null);
+    //     
+    //     var correlationId = Guid.NewGuid().ToString();
+    //
+    //     try
+    //     {
+    //         AuditLogProvider.Audit(new AuditLogEntry()
+    //         {
+    //             CorrelationId = correlationId,
+    //             ActingUserId = ActingUserIdentitySource.UserId,
+    //             EntryType = EAuditLogEntryType.Begin,
+    //             OccurrenceUtc = DateTime.UtcNow,
+    //             Locus = locus,
+    //             Summary = summary,
+    //             Detail = detail,
+    //         });
+    //
+    //         callback(correlationId);
+    //
+    //         AuditLogProvider.Audit(new AuditLogEntry()
+    //         {
+    //             CorrelationId = correlationId,
+    //             ActingUserId = ActingUserIdentitySource.UserId,
+    //             EntryType = EAuditLogEntryType.Success,
+    //             OccurrenceUtc = DateTime.UtcNow,
+    //             Locus = locus,
+    //             Summary = summary,
+    //             Detail = detail,
+    //         });
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         AuditLogProvider.Audit(new AuditLogEntry()
+    //         {
+    //             CorrelationId = correlationId,
+    //             ActingUserId = ActingUserIdentitySource.UserId,
+    //             EntryType = EAuditLogEntryType.Failure,
+    //             OccurrenceUtc = DateTime.UtcNow,
+    //             Locus = locus,
+    //             Summary = summary,
+    //             Detail = detail,
+    //         });
+    //         throw;
+    //     }
+    //
+    // }
 
     private void AssertPrivilege(EPrivilege privilegeAsserted)
     {
         Debug.Assert(ActingUserIdentitySource != null);
         
-        if(string.IsNullOrWhiteSpace(ActingUserIdentitySource.UserId))
+        if(string.IsNullOrWhiteSpace(ActingUserIdentitySource.ActingUserId))
             throw new InvalidOperationException($"UserId from ActingUserIdentitySource is null/empty/blank");
         
-        if (ActingUserIdentitySource.UserId == c__SystemAdmin_Builtin_User)
+        if (ActingUserIdentitySource.ActingUserId == c__SystemAdmin_Builtin_User)
             return;
-        if (DataStore.ExistsUserRole(ActingUserIdentitySource.UserId, c__SystemAdmin_Builtin_Role))
+        if (DataStore.ExistsUserRole(ActingUserIdentitySource.ActingUserId, c__SystemAdmin_Builtin_Role))
             return;
-        if (!DataStore.ExistsUserInRoleWithPrivilege(ActingUserIdentitySource.UserId, privilegeAsserted.ToString()))
+        if (!DataStore.ExistsUserInRoleWithPrivilege(ActingUserIdentitySource.ActingUserId, privilegeAsserted.ToString()))
             throw new ApiAccessDeniedException();
     }
     
@@ -127,10 +130,11 @@ public class ApplicationEngine
     {
         ArgumentNullException.ThrowIfNull(user);
 
-        AuditWrap(ApplicationLocus.Administration.User.Create,
-            $"{ActingUserIdentitySource.UserId}:{nameof(CreateUser)}",
-            $"{ActingUserIdentitySource.UserId} is creating user:[{user.UserId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.User.Create,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(CreateUser)}",
+            $"{ActingUserIdentitySource.ActingUserId} is creating user:[{user.UserId}]",
+            (adcc) =>
             {
                 user.Validate();
 
@@ -149,10 +153,11 @@ public class ApplicationEngine
         if (userIds == null! || userIds.Count() == 0)
             return;
 
-        AuditWrap(ApplicationLocus.Administration.Role.Update,
-            $"{ActingUserIdentitySource.UserId}:{nameof(AddUserIdsToRole)}",
-            $"{ActingUserIdentitySource.UserId} is adding user ids [{StringList(userIds)}] to role:[{roleId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Update,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(AddUserIdsToRole)}",
+            $"{ActingUserIdentitySource.ActingUserId} is adding user ids [{StringList(userIds)}] to role:[{roleId}]",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
 
@@ -187,10 +192,11 @@ public class ApplicationEngine
 
         bool returnValue = false;
         
-        AuditWrap(ApplicationLocus.Administration.User.Fetch,
-            $"{ActingUserIdentitySource.UserId}:{nameof(ExistsUser)}",
-            $"{ActingUserIdentitySource.UserId} is checking existence of user:[{userId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.User.Fetch,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(ExistsUser)}",
+            $"{ActingUserIdentitySource.ActingUserId} is checking existence of user:[{userId}]",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 returnValue= DataStore.ExistsUser(userId);
@@ -204,10 +210,11 @@ public class ApplicationEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
         DbUser? returnValue = null;
-        AuditWrap(ApplicationLocus.Administration.User.Fetch,
-            $"{ActingUserIdentitySource.UserId}:{nameof(FetchUser)}",
-            $"{ActingUserIdentitySource.UserId} is fetching user:[{userId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.User.Fetch,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(FetchUser)}",
+            $"{ActingUserIdentitySource.ActingUserId} is fetching user:[{userId}]",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 returnValue = DataStore.FetchUser(userId);
@@ -225,10 +232,11 @@ public class ApplicationEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
 
         bool returnValue = false;
-        AuditWrap(ApplicationLocus.Administration.Role.Fetch,
-            $"{ActingUserIdentitySource.UserId}:{nameof(ExistsRole)}",
-            $"{ActingUserIdentitySource.UserId} is checking existence of role:[{roleId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Fetch,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(ExistsRole)}",
+            $"{ActingUserIdentitySource.ActingUserId} is checking existence of role:[{roleId}]",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 returnValue = DataStore.ExistsRole(roleId);
@@ -243,10 +251,11 @@ public class ApplicationEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
 
         bool returnValue = false;
-        AuditWrap(ApplicationLocus.Administration.Role.Fetch,
-            $"{ActingUserIdentitySource.UserId}:{nameof(ExistsUserInRole)}",
-            $"{ActingUserIdentitySource.UserId} is checking existence of user [{userId}] in role:[{roleId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Fetch,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(ExistsUserInRole)}",
+            $"{ActingUserIdentitySource.ActingUserId} is checking existence of user [{userId}] in role:[{roleId}]",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 returnValue = DataStore.ExistsUserRole(userId, roleId);
@@ -259,10 +268,11 @@ public class ApplicationEngine
     {
         ArgumentNullException.ThrowIfNull(role);
 
-        AuditWrap(ApplicationLocus.Administration.Role.Create,
-            $"{ActingUserIdentitySource.UserId}:{nameof(CreateRole)}",
-            $"{ActingUserIdentitySource.UserId} is creating role:[{role.RoleId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Create,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(CreateRole)}",
+            $"{ActingUserIdentitySource.ActingUserId} is creating role:[{role.RoleId}]",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 role.Validate();
@@ -279,10 +289,11 @@ public class ApplicationEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
 
         DbRole? returnValue = null;
-        AuditWrap(ApplicationLocus.Administration.Role.Fetch,
-            $"{ActingUserIdentitySource.UserId}:{nameof(FetchRole)}",
-            $"{ActingUserIdentitySource.UserId} is fetching role:[{roleId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Fetch,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(FetchRole)}",
+            $"{ActingUserIdentitySource.ActingUserId} is fetching role:[{roleId}]",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 returnValue = DataStore.FetchRole(roleId);
@@ -297,10 +308,11 @@ public class ApplicationEngine
     public IEnumerable<DbUserRole> FetchAllUserRoles()
     {
         IEnumerable<DbUserRole> returnValue = [];
-        AuditWrap(ApplicationLocus.Administration.UserRole.Fetch,
-            $"{ActingUserIdentitySource.UserId}:{nameof(FetchAllUserRoles)}",
-            $"{ActingUserIdentitySource.UserId} is fetching all user-role relationships",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.UserRole.Fetch,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(FetchAllUserRoles)}",
+            $"{ActingUserIdentitySource.ActingUserId} is fetching all user-role relationships",
+            (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 returnValue = DataStore.FetchAllUserRoles();
@@ -317,10 +329,11 @@ public class ApplicationEngine
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
 
-        AuditWrap(ApplicationLocus.Administration.Role.Grant,
-            $"{ActingUserIdentitySource.UserId}:{nameof(GrantRolePrivilege)}",
-            $"{ActingUserIdentitySource.UserId} is granting privilege:[{privilege.ToString()}] to role:[{roleId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Grant,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(GrantRolePrivilege)}",
+            $"{ActingUserIdentitySource.ActingUserId} is granting privilege:[{privilege.ToString()}] to role:[{roleId}]",
+            (adcc) =>
             {
 #warning Do a Process Audit if role is granted system admin 
                 AssertPrivilege(EPrivilege.SystemAdmin);
@@ -334,9 +347,10 @@ public class ApplicationEngine
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
         bool returnValue = false;
-        AuditWrap(ApplicationLocus.Administration.User.CheckPrivilege,
-            $"{ActingUserIdentitySource.UserId}:{nameof(UserHasPrivilege)}",
-            $"{ActingUserIdentitySource.UserId} is checking privilege:[{privilege.ToString()}] for user:[{userId}]",
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.User.CheckPrivilege,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(UserHasPrivilege)}",
+            $"{ActingUserIdentitySource.ActingUserId} is checking privilege:[{privilege.ToString()}] for user:[{userId}]",
             (cid) =>
             {
 #warning Do a Process Audit if role is granted system admin
@@ -350,10 +364,11 @@ public class ApplicationEngine
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
 
-        AuditWrap(ApplicationLocus.Administration.Role.Revoke,
-            $"{ActingUserIdentitySource.UserId}:{nameof(RevokeRolePrivilege)}",
-            $"{ActingUserIdentitySource.UserId} is revoking privilege:[{privilege.ToString()}] from role:[{roleId}]",
-            (cid) =>
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Revoke,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(RevokeRolePrivilege)}",
+            $"{ActingUserIdentitySource.ActingUserId} is revoking privilege:[{privilege.ToString()}] from role:[{roleId}]",
+            (adcc) =>
             {
 #warning Do a Process Audit if role is revoked system admin
                 AssertPrivilege(EPrivilege.SystemAdmin);

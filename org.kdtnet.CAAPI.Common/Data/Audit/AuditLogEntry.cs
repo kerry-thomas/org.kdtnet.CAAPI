@@ -1,4 +1,4 @@
-namespace org.kdtnet.CAAPI.Common.Data.AuditLogging;
+namespace org.kdtnet.CAAPI.Common.Data.Audit;
 
 public class AuditLogEntry
 {

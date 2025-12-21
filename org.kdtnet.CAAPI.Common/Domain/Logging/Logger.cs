@@ -1,6 +1,7 @@
 using org.kdtnet.CAAPI.Common.Abstraction;
+using org.kdtnet.CAAPI.Common.Abstraction.Logging;
 
-namespace org.kdtnet.CAAPI.Common.Domain;
+namespace org.kdtnet.CAAPI.Common.Domain.Logging;
 
 public class Logger : ILogger
 {

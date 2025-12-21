@@ -1,4 +1,5 @@
 using org.kdtnet.CAAPI.Common.Abstraction;
+using org.kdtnet.CAAPI.Common.Abstraction.Logging;
 
 namespace org.kdtnet.CAAPI.Common.Data.Configuration;
 

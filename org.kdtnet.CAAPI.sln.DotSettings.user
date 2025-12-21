@@ -6,6 +6,9 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7b3052be_002D9bca_002D4598_002D9aae_002D547f00b6bec4/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;org.kdtnet.CAAPI.Tests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;Project Location="/home/kdt/RiderProjects/org.kdtnet.CAAPI/org.kdtnet.CAAPI.Tests" Presentation="&amp;lt;org.kdtnet.CAAPI.Tests&amp;gt;" /&gt;
 &lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7f0cb2d6_002D373d_002D4c34_002Dac91_002Dc1e83b52ce1b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;org.kdtnet.CAAPI.Tests&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Project Location="/home/kdt/RiderProjects/org.kdtnet.CAAPI/org.kdtnet.CAAPI.Tests" Presentation="&amp;lt;org.kdtnet.CAAPI.Tests&amp;gt;" /&gt;
+&lt;/SessionState&gt;</s:String>
 	
 	
 	

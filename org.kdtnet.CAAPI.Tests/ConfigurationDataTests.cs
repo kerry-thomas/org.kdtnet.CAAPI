@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using org.kdtnet.CAAPI.Common.Abstraction;
+using org.kdtnet.CAAPI.Common.Abstraction.Logging;
 using org.kdtnet.CAAPI.Common.Data.Configuration;
 
 namespace org.kdtnet.CAAPI.Tests;

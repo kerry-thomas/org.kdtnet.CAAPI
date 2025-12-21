@@ -1,4 +1,4 @@
-namespace org.kdtnet.CAAPI.Common.Abstraction;
+namespace org.kdtnet.CAAPI.Common.Abstraction.Logging;
 
 public interface ILogFormatter
 {

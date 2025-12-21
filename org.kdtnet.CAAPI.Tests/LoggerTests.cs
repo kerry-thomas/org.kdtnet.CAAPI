@@ -1,8 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Moq;
 using org.kdtnet.CAAPI.Common.Abstraction;
+using org.kdtnet.CAAPI.Common.Abstraction.Logging;
 using org.kdtnet.CAAPI.Common.Data.Configuration;
 using org.kdtnet.CAAPI.Common.Domain;
+using org.kdtnet.CAAPI.Common.Domain.Logging;
 using org.kdtnet.CAAPI.Common.Utility;
 
 namespace org.kdtnet.CAAPI.Tests;
