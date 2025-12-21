@@ -556,18 +556,24 @@ public class SqliteDataStore : IDataStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(privilegeId);
         var strSql = new StringBuilder();
-        strSql.Append(" select userId");
+        strSql.Append(" select distinct ur.userId");
         strSql.Append(" from RolePrivilege rp");
         strSql.Append("   inner join UserRole ur on (rp.RoleId = ur.RoleId)");
         strSql.Append(" where rp.PrivilegeId = @privilegeId");
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
+            cmd.CommandText = strSql.ToString();
+            cmd.Parameters.AddWithValue("@privilegeId", privilegeId);
+
+            var returnValue = new List<string>();
             using (var rdr = cmd.ExecuteReader())
             {
                 while (rdr.Read())
-                    yield return rdr.GetString(0);
+                    returnValue.Add(rdr.GetString(0));
             }
+
+            return returnValue;
         }
     }
 
@@ -606,8 +612,7 @@ public class SqliteDataStore : IDataStore
             var strSql = new StringBuilder();
             strSql.Append(" select count(1)");
             strSql.Append(" from RolePrivilege rp");
-            strSql.Append(
-                "   inner join UserRole ur on (rp.RoleId=ur.RoleId and rp.PrivilegeId=@privilegeId and ur.UserId=@userId)");
+            strSql.Append("   inner join UserRole ur on (rp.RoleId=ur.RoleId and rp.PrivilegeId=@privilegeId and ur.UserId=@userId)");
 
             cmd.CommandText = strSql.ToString();
             cmd.Parameters.AddWithValue("@userId", userId);

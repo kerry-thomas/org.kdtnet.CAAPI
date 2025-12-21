@@ -32,6 +32,7 @@ public class AuditWrapper
 
         void LocalDetailCallback(string detailMessage)
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(detailMessage);
             AuditLogWriter.Audit(new AuditLogEntry()
             {
                 CorrelationId = correlationId,
@@ -40,7 +41,7 @@ public class AuditWrapper
                 OccurrenceUtc = DateTime.UtcNow,
                 Locus = locus,
                 Summary = summary,
-                Detail = beginDetail,
+                Detail = detailMessage,
             });
         }
         try

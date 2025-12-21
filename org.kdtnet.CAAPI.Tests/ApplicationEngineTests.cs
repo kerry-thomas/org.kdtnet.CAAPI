@@ -13,11 +13,13 @@ using org.kdtnet.CAAPI.Implementation;
 
 namespace org.kdtnet.CAAPI.Tests
 {
+    [ExcludeFromCodeCoverage]
     public class TestingActingUserIdentitySource : IActingUserIdentitySource
     {
         public string ActingUserId { get; set; } = ApplicationEngine.c__SystemAdmin_Builtin_User;
     }
 
+    [ExcludeFromCodeCoverage]
     public class TestingAuditLogWriter : IAuditLogWriter
     {
         public List<AuditLogEntry> LogEntries { get; set; } = [];
@@ -53,6 +55,7 @@ namespace org.kdtnet.CAAPI.Tests
                     DataStore = new ApplicationConfigurationDataStore()
                     {
                         ConnectionString = "Data Source=:memory:"
+                        //ConnectionString = "Data Source=/home/kdt/caapi.db"
                     }
                 });
             TestDataStore = new SqliteDataStore(MockConfigurationSource.Object);
@@ -384,6 +387,74 @@ namespace org.kdtnet.CAAPI.Tests
             Assert.IsFalse(engine.UserHasPrivilege(testUser1.UserId, EPrivilege.SystemAdmin));
             Assert.IsFalse(engine.UserHasPrivilege(testUser2.UserId, EPrivilege.SystemAdmin));
             Assert.IsFalse(engine.UserHasPrivilege(testUser3.UserId, EPrivilege.SystemAdmin));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RolePrivilege.HappyPath")]
+        public void AuditPrivilegeElevationBuiltinSystemAdminRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+            var testUser3 = new DbUser() { UserId = "lucy.vanpelt", FriendlyName = "Lucy Van Pelt", IsActive = true };
+
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            engine.AddUserIdsToRole(ApplicationEngine.c__SystemAdmin_Builtin_Role, [testUser1.UserId, testUser2.UserId]);
+            
+            Assert.IsTrue(engine.UserHasPrivilege(testUser1.UserId, EPrivilege.SystemAdmin));
+            Assert.IsTrue(engine.UserHasPrivilege(testUser2.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser3.UserId, EPrivilege.SystemAdmin));
+            
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser1.UserId) && a.Detail.Contains("granted admin")));
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser2.UserId) && a.Detail.Contains("granted admin")));
+            Assert.IsFalse(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser3.UserId) && a.Detail.Contains("granted admin")));
+            
+            engine.RemoveUserIdsFromRole(ApplicationEngine.c__SystemAdmin_Builtin_Role, [testUser1.UserId, testUser2.UserId]);
+            
+            Assert.IsFalse(engine.UserHasPrivilege(testUser1.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser2.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser3.UserId, EPrivilege.SystemAdmin));
+            
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser1.UserId) && a.Detail.Contains("revoked admin")));
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser2.UserId) && a.Detail.Contains("revoked admin")));
+            Assert.IsFalse(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser3.UserId) && a.Detail.Contains("revoked admin")));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RolePrivilege.HappyPath")]
+        public void AuditPrivilegeElevationSubordinateRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+            var testUser3 = new DbUser() { UserId = "lucy.vanpelt", FriendlyName = "Lucy Van Pelt", IsActive = true };
+
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            engine.AddUserIdsToRole(testRole.RoleId, [testUser1.UserId, testUser2.UserId]);
+            engine.GrantRolePrivilege(testRole.RoleId, EPrivilege.SystemAdmin);
+            
+            Assert.IsTrue(engine.UserHasPrivilege(testUser1.UserId, EPrivilege.SystemAdmin));
+            Assert.IsTrue(engine.UserHasPrivilege(testUser2.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser3.UserId, EPrivilege.SystemAdmin));
+            
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser1.UserId) && a.Detail.Contains("granted admin")));
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser2.UserId) && a.Detail.Contains("granted admin")));
+            Assert.IsFalse(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser3.UserId) && a.Detail.Contains("granted admin")));
+            
+            engine.RevokeRolePrivilege(testRole.RoleId, EPrivilege.SystemAdmin);
+            Assert.IsFalse(engine.UserHasPrivilege(testUser1.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser2.UserId, EPrivilege.SystemAdmin));
+            Assert.IsFalse(engine.UserHasPrivilege(testUser3.UserId, EPrivilege.SystemAdmin));
+            
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser1.UserId) && a.Detail.Contains("revoked admin")));
+            Assert.IsTrue(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser2.UserId) && a.Detail.Contains("revoked admin")));
+            Assert.IsFalse(TestAuditLogWriter!.LogEntries.Any(a => a.Detail.Contains(testUser3.UserId) && a.Detail.Contains("revoked admin")));
         }
         
         #endregion

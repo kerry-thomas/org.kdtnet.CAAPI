@@ -41,6 +41,7 @@ public class ApplicationEngine
                 { UserId = c__SystemAdmin_Builtin_User, FriendlyName = "System Admin User", IsActive = false });
             DataStore.PersistRole(new DbRole()
                 { RoleId = c__SystemAdmin_Builtin_Role, FriendlyName = "System Admin Role" });
+            DataStore.InsertRolePrivilege(new DbRolePrivilege() { PrivilegeId = nameof(EPrivilege.SystemAdmin), RoleId = c__SystemAdmin_Builtin_Role});
             DataStore.PersistUserRole(new DbUserRole()
                 { UserId = c__SystemAdmin_Builtin_User, RoleId = c__SystemAdmin_Builtin_User });
 
@@ -180,7 +181,7 @@ public class ApplicationEngine
                         if (!DataStore.ExistsUser(userId))
                             throw new ApiGenericException($"User {userId} does not exist");
                         if (DataStore.ExistsUserRole(userId, roleId))
-                            throw new ApiGenericException($"user {userId} already exists in  role {roleId}");
+                            throw new ApiGenericException($"user {userId} already exists in role {roleId}");
 
                         var newUserRole = new DbUserRole() { UserId = userId, RoleId = roleId };
                         newUserRole.Validate();
@@ -194,6 +195,51 @@ public class ApplicationEngine
                 var newAdmins = adminsAfter.Except(adminsBefore);
                 foreach (var newAdmin in newAdmins)
                     adcc.DetailCallback($"user {newAdmin} has been granted admin via role {roleId}");
+            });
+    }
+    
+    public void RemoveUserIdsFromRole(string roleId, IEnumerable<string> userIds)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+        if (userIds == null! || userIds.Count() == 0)
+            return;
+
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Update,
+            $"{ActingUserIdentitySource.ActingUserId}:{nameof(AddUserIdsToRole)}",
+            $"{ActingUserIdentitySource.ActingUserId} is removing user ids [{StringList(userIds)}] from role:[{roleId}]",
+            (adcc) =>
+            {
+                AssertPrivilege(EPrivilege.SystemAdmin);
+
+                if (!DataStore.ExistsRole(roleId))
+                    throw new ApiGenericException($"Role {roleId} does not exist");
+
+                var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+                DataStore.TransactionWrap(() =>
+                {
+                    foreach (var userId in userIds)
+                    {
+                        if (string.IsNullOrWhiteSpace(userId))
+                            throw new ApiGenericException(
+                                $"the userid list contains at least one userid that is null/empty/blank");
+                        if (!DataStore.ExistsUser(userId))
+                            throw new ApiGenericException($"User {userId} does not exist");
+                        if (!DataStore.ExistsUserRole(userId, roleId))
+                            throw new ApiGenericException($"user {userId} does not exist in role {roleId}");
+
+                        var newUserRole = new DbUserRole() { UserId = userId, RoleId = roleId };
+                        newUserRole.Validate();
+                        DataStore.DeleteUserRole(userId, roleId);
+                    }
+
+                    return true;
+                });
+                var adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+
+                var noLongerAdmins = adminsBefore.Except(adminsAfter);
+                foreach (var noLongerAdmin in noLongerAdmins)
+                    adcc.DetailCallback($"user {noLongerAdmin} has been revoked admin via role {roleId}");
             });
     }
 
@@ -390,7 +436,7 @@ public class ApplicationEngine
                 var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
                 DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
                 var adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
-                var noLongerAdmins = adminsAfter.Except(adminsBefore);
+                var noLongerAdmins = adminsBefore.Except(adminsAfter);
                 foreach (var noLongerAdmin in noLongerAdmins)
                     adcc.DetailCallback($"user {noLongerAdmin} has been revoked admin via role {roleId}");
             });
