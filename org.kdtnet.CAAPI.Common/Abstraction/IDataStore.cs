@@ -66,6 +66,7 @@ public interface IDataStore : IDisposable
     #endregion
 
     void Initialize();
+    void Zap();
 
 
 }

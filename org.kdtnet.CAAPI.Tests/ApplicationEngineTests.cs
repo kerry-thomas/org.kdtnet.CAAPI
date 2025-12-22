@@ -35,7 +35,8 @@ namespace org.kdtnet.CAAPI.Tests
     {
         private Mock<ILogger>? MockLogger { get; set; }
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
-        private SqliteDataStore? TestDataStore { get; set; }
+        private SqliteInMemoryDataStore? TestDataStore { get; set; }
+        //private SqlitePhysicalDataStore? TestDataStore { get; set; }
         private TestingActingUserIdentitySource? TestActingUserIdentitySource { get; set; }
         private TestingAuditLogWriter? TestAuditLogWriter { get; set; }
         private AuditWrapper? TestAuditWrapper { get; set; }
@@ -54,11 +55,13 @@ namespace org.kdtnet.CAAPI.Tests
                     },
                     DataStore = new ApplicationConfigurationDataStore()
                     {
-                        ConnectionString = "Data Source=:memory:"
-                        //ConnectionString = "Data Source=/home/kdt/caapi.db"
+                        //ConnectionString = "Data Source=:memory:"
+                        ConnectionString = "Data Source=/home/kdt/caapi.db"
                     }
                 });
-            TestDataStore = new SqliteDataStore(MockConfigurationSource.Object);
+            TestDataStore = new SqliteInMemoryDataStore();
+            //TestDataStore = new SqlitePhysicalDataStore(MockConfigurationSource.Object);
+            TestDataStore.Zap();
             TestActingUserIdentitySource = new TestingActingUserIdentitySource();
             TestAuditLogWriter = new TestingAuditLogWriter();
             TestAuditWrapper = new AuditWrapper(TestAuditLogWriter);
