@@ -1,10 +1,11 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿// ReSharper disable PossibleMultipleEnumeration
+// ReSharper disable InconsistentNaming
+
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
-using org.kdtnet.CAAPI.Common.Abstraction.Audit;
 using org.kdtnet.CAAPI.Common.Abstraction.Logging;
-using org.kdtnet.CAAPI.Common.Data.Audit;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
 using org.kdtnet.CAAPI.Common.Domain.Audit;
 
@@ -38,72 +39,25 @@ public class ApplicationEngine
         DataStore.TransactionWrap(() =>
         {
             DataStore.InsertUser(new DbUser()
-                { UserId = c__SystemAdmin_Builtin_User, FriendlyName = "System Admin User", IsActive = false });
-            DataStore.PersistRole(new DbRole()
+                { UserId = c__SystemAdmin_Builtin_User, FriendlyName = "System Admin User", IsActive = true });
+            DataStore.InsertRole(new DbRole()
                 { RoleId = c__SystemAdmin_Builtin_Role, FriendlyName = "System Admin Role" });
             DataStore.InsertRolePrivilege(new DbRolePrivilege() { PrivilegeId = nameof(EPrivilege.SystemAdmin), RoleId = c__SystemAdmin_Builtin_Role});
             DataStore.PersistUserRole(new DbUserRole()
-                { UserId = c__SystemAdmin_Builtin_User, RoleId = c__SystemAdmin_Builtin_User });
+                { UserId = c__SystemAdmin_Builtin_User, RoleId = c__SystemAdmin_Builtin_Role });
 
             return true;
         });
     }
 
-    // private void AuditWrap(string locus, string summary, string detail, Action<string> callback)
-    // {
-    //     Debug.Assert(callback != null);
-    //     
-    //     var correlationId = Guid.NewGuid().ToString();
-    //
-    //     try
-    //     {
-    //         AuditLogProvider.Audit(new AuditLogEntry()
-    //         {
-    //             CorrelationId = correlationId,
-    //             ActingUserId = ActingUserIdentitySource.UserId,
-    //             EntryType = EAuditLogEntryType.Begin,
-    //             OccurrenceUtc = DateTime.UtcNow,
-    //             Locus = locus,
-    //             Summary = summary,
-    //             Detail = detail,
-    //         });
-    //
-    //         callback(correlationId);
-    //
-    //         AuditLogProvider.Audit(new AuditLogEntry()
-    //         {
-    //             CorrelationId = correlationId,
-    //             ActingUserId = ActingUserIdentitySource.UserId,
-    //             EntryType = EAuditLogEntryType.Success,
-    //             OccurrenceUtc = DateTime.UtcNow,
-    //             Locus = locus,
-    //             Summary = summary,
-    //             Detail = detail,
-    //         });
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         AuditLogProvider.Audit(new AuditLogEntry()
-    //         {
-    //             CorrelationId = correlationId,
-    //             ActingUserId = ActingUserIdentitySource.UserId,
-    //             EntryType = EAuditLogEntryType.Failure,
-    //             OccurrenceUtc = DateTime.UtcNow,
-    //             Locus = locus,
-    //             Summary = summary,
-    //             Detail = detail,
-    //         });
-    //         throw;
-    //     }
-    //
-    // }
-
     private void AssertPrivilege(EPrivilege privilegeAsserted)
     {
         Debug.Assert(ActingUserIdentitySource != null);
+        Debug.Assert(!string.IsNullOrWhiteSpace(ActingUserIdentitySource.ActingUserId));
 
-        if (string.IsNullOrWhiteSpace(ActingUserIdentitySource.ActingUserId))
-            throw new InvalidOperationException($"UserId from ActingUserIdentitySource is null/empty/blank");
+        var user = DataStore.FetchUser(ActingUserIdentitySource.ActingUserId);
+        if(user == null || !user.IsActive)
+            throw new ApiAccessDeniedException();
 
         if (ActingUserIdentitySource.ActingUserId == c__SystemAdmin_Builtin_User)
             return;
@@ -128,6 +82,11 @@ public class ApplicationEngine
         return sb.ToString();
     }
 
+    private static string GetCurrentMethodName([CallerMemberName] string methodName = "UNKNOWN")
+    {
+        return methodName;
+    }
+
     #region Administration
 
     #region User
@@ -138,9 +97,9 @@ public class ApplicationEngine
 
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.User.Create,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(CreateUser)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is creating user:[{user.UserId}]",
-            (_) =>
+            (adcc) =>
             {
                 user.Validate();
 
@@ -150,9 +109,51 @@ public class ApplicationEngine
                     throw new ApiGenericException($"User {user.UserId} already exists");
 
                 DataStore.InsertUser(user);
+                adcc.DetailCallback($"user {user.UserId} IsActive has been set to {user.IsActive}");
             });
     }
 
+
+    public void DeleteUser(string userId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.User.Delete,
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
+            $"{ActingUserIdentitySource.ActingUserId} is deleting user:[{userId}]",
+            (_) =>
+            {
+                AssertPrivilege(EPrivilege.SystemAdmin);
+
+                var currentRoleMemberships = DataStore.GetUserRoleMemberships(userId);
+                if (currentRoleMemberships.Any())
+                    throw new ApiGenericException($"User {userId} belongs to role(s): [{StringList(currentRoleMemberships)}]");
+
+                if (!DataStore.ExistsUser(userId))
+                    throw new ApiGenericException($"User {userId} does not exist");
+
+                DataStore.DeleteUser(userId);
+            });
+    }
+
+    public void UpdateUser(DbUser user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.User.Update,
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
+            $"{ActingUserIdentitySource.ActingUserId} is updating user:[{user.UserId}]",
+            (adcc) =>
+            {
+                user.Validate();
+                AssertPrivilege(EPrivilege.SystemAdmin);
+                DataStore.UpdateUser(user);
+                adcc.DetailCallback($"user {user.UserId} IsActive has been set to {user.IsActive}");
+            });
+    }
+    
     public void AddUserIdsToRole(string roleId, IEnumerable<string> userIds)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
@@ -161,7 +162,7 @@ public class ApplicationEngine
 
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Update,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(AddUserIdsToRole)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is adding user ids [{StringList(userIds)}] to role:[{roleId}]",
             (adcc) =>
             {
@@ -206,7 +207,7 @@ public class ApplicationEngine
 
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Update,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(AddUserIdsToRole)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is removing user ids [{StringList(userIds)}] from role:[{roleId}]",
             (adcc) =>
             {
@@ -251,7 +252,7 @@ public class ApplicationEngine
 
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.User.Fetch,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(ExistsUser)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is checking existence of user:[{userId}]",
             (_) =>
             {
@@ -269,7 +270,7 @@ public class ApplicationEngine
         DbUser? returnValue = null;
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.User.Fetch,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(FetchUser)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is fetching user:[{userId}]",
             (_) =>
             {
@@ -291,7 +292,7 @@ public class ApplicationEngine
         bool returnValue = false;
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Fetch,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(ExistsRole)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is checking existence of role:[{roleId}]",
             (_) =>
             {
@@ -310,7 +311,7 @@ public class ApplicationEngine
         bool returnValue = false;
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Fetch,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(ExistsUserInRole)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is checking existence of user [{userId}] in role:[{roleId}]",
             (_) =>
             {
@@ -321,23 +322,77 @@ public class ApplicationEngine
         return returnValue;
     }
 
+    public void UpdateRole(DbRole role)
+    {
+        ArgumentNullException.ThrowIfNull(role);
+
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Update,
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
+            $"{ActingUserIdentitySource.ActingUserId} is updating role:[{role.RoleId}]",
+            (_) =>
+            {
+                AssertPrivilege(EPrivilege.SystemAdmin);
+                role.Validate();
+
+                DataStore.TransactionWrap(() =>
+                {
+                    if (!DataStore.ExistsRole(role.RoleId))
+                        throw new ApiGenericException($"Role {role.RoleId} does not exist");
+
+                    DataStore.UpdateRole(role);
+                });
+            });
+    }
+
     public void CreateRole(DbRole role)
     {
         ArgumentNullException.ThrowIfNull(role);
 
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Create,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(CreateRole)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is creating role:[{role.RoleId}]",
             (_) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
                 role.Validate();
 
-                if (DataStore.ExistsRole(role.RoleId))
-                    throw new ApiGenericException($"Role {role.RoleId} already exists");
+                DataStore.TransactionWrap(() =>
+                {
+                    if (DataStore.ExistsRole(role.RoleId))
+                        throw new ApiGenericException($"Role {role.RoleId} already exists");
 
-                DataStore.PersistRole(role);
+                    DataStore.InsertRole(role);
+                });
+            });
+    }
+
+    public void DeleteRole(string roleId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Administration.Role.Delete,
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
+            $"{ActingUserIdentitySource.ActingUserId} is deleting role:[{roleId}]",
+            (_) =>
+            {
+                AssertPrivilege(EPrivilege.SystemAdmin);
+
+                DataStore.TransactionWrap(() =>
+                {
+                    if (!DataStore.ExistsRole(roleId))
+                        throw new ApiGenericException($"Role {roleId} does not exist");
+
+                    if (DataStore.ExistsUsersInRole(roleId))
+                        throw new ApiGenericException($"Role {roleId} contains users");
+
+                    if (DataStore.ExistsRolePrivilegesForRole(roleId))
+                        throw new ApiGenericException($"Role {roleId} contains privilege grants");
+
+                    DataStore.DeleteRole(roleId);
+                });
             });
     }
 
@@ -348,7 +403,7 @@ public class ApplicationEngine
         DbRole? returnValue = null;
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Fetch,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(FetchRole)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is fetching role:[{roleId}]",
             (_) =>
             {
@@ -367,7 +422,7 @@ public class ApplicationEngine
         IEnumerable<DbUserRole> returnValue = [];
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.UserRole.Fetch,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(FetchAllUserRoles)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is fetching all user-role relationships",
             (_) =>
             {
@@ -388,16 +443,24 @@ public class ApplicationEngine
 
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Grant,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(GrantRolePrivilege)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is granting privilege:[{privilege.ToString()}] to role:[{roleId}]",
             (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
 
-                var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
-                DataStore.InsertRolePrivilege(new DbRolePrivilege()
-                    { RoleId = roleId, PrivilegeId = privilege.ToString() });
-                var adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+                IEnumerable<string>? adminsBefore = null;
+                IEnumerable<string>? adminsAfter = null;
+                DataStore.TransactionWrap(() =>
+                {
+                    adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+                    DataStore.InsertRolePrivilege(new DbRolePrivilege()
+                        { RoleId = roleId, PrivilegeId = privilege.ToString() });
+                    adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+                });
+                
+                Debug.Assert(adminsBefore != null);
+                Debug.Assert(adminsAfter != null);
 
                 var newAdmins = adminsAfter.Except(adminsBefore);
                 foreach (var newAdmin in newAdmins)
@@ -412,7 +475,7 @@ public class ApplicationEngine
         bool returnValue = false;
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.User.CheckPrivilege,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(UserHasPrivilege)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is checking privilege:[{privilege.ToString()}] for user:[{userId}]",
             (_) =>
             {
@@ -428,17 +491,30 @@ public class ApplicationEngine
 
         AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
             ApplicationLocus.Administration.Role.Revoke,
-            $"{ActingUserIdentitySource.ActingUserId}:{nameof(RevokeRolePrivilege)}",
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is revoking privilege:[{privilege.ToString()}] from role:[{roleId}]",
             (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
-                var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
-                DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
-                var adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+                
+                IEnumerable<string>? adminsBefore = null;
+                IEnumerable<string>? adminsAfter = null;
+                DataStore.TransactionWrap(() =>
+                {
+                    adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+                    DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
+                    adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+                });
+                
+                Debug.Assert(adminsBefore != null);
+                Debug.Assert(adminsAfter != null);
+
                 var noLongerAdmins = adminsBefore.Except(adminsAfter);
                 foreach (var noLongerAdmin in noLongerAdmins)
                     adcc.DetailCallback($"user {noLongerAdmin} has been revoked admin via role {roleId}");
             });
     }
 }
+
+// ReSharper restore InconsistentNaming
+// ReSharper restore PossibleMultipleEnumeration

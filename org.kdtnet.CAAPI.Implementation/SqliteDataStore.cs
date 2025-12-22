@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿// ReSharper disable InconsistentNaming
+
+using System.Diagnostics;
 using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
@@ -48,6 +50,8 @@ public class SqliteDataStore : IDataStore
             }
         }
     }
+    
+    #region Initialize/DDL
 
     public void Initialize()
     {
@@ -57,6 +61,7 @@ public class SqliteDataStore : IDataStore
     public void CreateTablesIfNeeded()
     {
         Init();
+        EnforceForeignKeys();
         using (var tx = InternalConnection!.BeginTransaction())
         {
             CreateUserTableIfNeeded(tx);
@@ -72,31 +77,38 @@ public class SqliteDataStore : IDataStore
 
     #region Create Table Statements
 
-    private const string c__Sql_Ddl_CreateTable_User =
-        @"CREATE TABLE ""User"" (
-	        ""UserId""	TEXT NOT NULL,
-	        ""FriendlyName""	TEXT NOT NULL,
-	        ""IsActive""	INTEGER NOT NULL,
-	        PRIMARY KEY(""UserId"")
-                )  ";
+    private const string c__Sql_Ddl_CreateTable_User = """
+                                                       CREATE TABLE "User" (
+                                                       	        "UserId"        TEXT NOT NULL,
+                                                       	        "FriendlyName"  TEXT NOT NULL,
+                                                       	        "IsActive"      INTEGER NOT NULL,
+                                                       	        PRIMARY KEY("UserId")
+                                                                       )  
+                                                       """;
 
-    private const string c__Sql_Ddl_CreateTable_Role = @"CREATE TABLE ""Role"" (
-	        ""RoleId""	TEXT NOT NULL,
-	        ""FriendlyName""	TEXT NOT NULL,
-	        PRIMARY KEY(""RoleId"")
-            );";
+    private const string c__Sql_Ddl_CreateTable_Role = """
+                                                       CREATE TABLE "Role" (
+                                                       	        "RoleId"       TEXT NOT NULL,
+                                                       	        "FriendlyName" TEXT NOT NULL,
+                                                       	        PRIMARY KEY("RoleId") 
+                                                                   );
+                                                       """;
 
-    private const string c__Sql_Ddl_CreateTable_UserRole = @"CREATE TABLE ""UserRole"" (
-	        ""UserId""	TEXT NOT NULL,
-	        ""RoleId""	TEXT NOT NULL,
-	        PRIMARY KEY(""UserId"",""RoleId"" )
-            );";
+    private const string c__Sql_Ddl_CreateTable_UserRole = """
+                                                           CREATE TABLE "UserRole" (
+                                                           	        "UserId" TEXT NOT NULL REFERENCES "User"("UserId"),
+                                                           	        "RoleId" TEXT NOT NULL REFERENCES "Role"("RoleId"),
+                                                           	        PRIMARY KEY("UserId","RoleId" )
+                                                                       );
+                                                           """;
 
-    private const string c__Sql_Ddl_CreateTable_RolePrivilege = @"CREATE TABLE ""RolePrivilege"" (
-	        ""RoleId""	TEXT NOT NULL,
-	        ""PrivilegeId""	TEXT NOT NULL,
-	        PRIMARY KEY(""RoleId"",""PrivilegeId"" )
-            );";
+    private const string c__Sql_Ddl_CreateTable_RolePrivilege = """
+                                                                CREATE TABLE "RolePrivilege" (
+                                                                	        "RoleId"      TEXT NOT NULL REFERENCES "Role"("RoleId"),
+                                                                	        "PrivilegeId" TEXT NOT NULL,
+                                                                	        PRIMARY KEY("RoleId","PrivilegeId" )
+                                                                            );
+                                                                """;
 
     #endregion
 
@@ -122,6 +134,11 @@ public class SqliteDataStore : IDataStore
         if (!ExistsTable("RolePrivilege", tx)) RunDdl(c__Sql_Ddl_CreateTable_RolePrivilege, tx);
     }
 
+    private void EnforceForeignKeys()
+    {
+        RunDdl("PRAGMA foreign_keys = ON;", null!);
+    }
+
     private void RunDdl(string ddlSql, SqliteTransaction tx)
     {
         using (var cmd = InternalConnection!.CreateCommand())
@@ -143,40 +160,13 @@ public class SqliteDataStore : IDataStore
             return count > 0;
         }
     }
+    
+    #endregion
 
+    #region Transaction Wrappers
+    
     public void TransactionWrap(Func<bool> callback)
     {
-        // bool iCreatedTransaction = false;
-        //
-        // if (CurrentTransaction == null)
-        // {
-        //     CurrentTransaction = InternalConnection!.BeginTransaction();
-        //     iCreatedTransaction = true;
-        // }
-        //
-        // try
-        // {
-        //     var callbackResult = callback();
-        //     if (iCreatedTransaction)
-        //     {
-        //         if (callbackResult)
-        //             CurrentTransaction.Commit();
-        //         else
-        //             CurrentTransaction.Rollback();
-        //     }
-        // }
-        // catch
-        // {
-        //     if (iCreatedTransaction)
-        //         CurrentTransaction.Rollback();
-        //     throw;
-        // }
-        // finally
-        // {
-        //     if (iCreatedTransaction)
-        //         CurrentTransaction = null;
-        // }
-
         CoreTransactionWrap(iCreatedTransaction =>
         {
             var callbackResult = callback();
@@ -233,7 +223,11 @@ public class SqliteDataStore : IDataStore
             }
         }
     }
+    
+    #endregion
 
+    #region User
+    
     public void UpdateUser(DbUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -327,26 +321,15 @@ public class SqliteDataStore : IDataStore
 
             cmd.Transaction = CurrentTransaction;
 
-            var count = cmd.ExecuteNonQuery();
+            cmd.ExecuteNonQuery();
         }
     }
 
-    public bool PersistRole(DbRole role)
-    {
-        ArgumentNullException.ThrowIfNull(role);
-
-        Init();
-
-        var returnValue = ExistsRole(role.RoleId);
-        if (returnValue)
-            UpdateRole(role);
-        else
-            InsertRole(role);
-
-        return returnValue;
-    }
-
-    private void InsertRole(DbRole role)
+    #endregion
+    
+    #region Role
+    
+    public void InsertRole(DbRole role)
     {
         ArgumentNullException.ThrowIfNull(role);
 
@@ -364,7 +347,7 @@ public class SqliteDataStore : IDataStore
         }
     }
 
-    private void UpdateRole(DbRole role)
+    public void UpdateRole(DbRole role)
     {
         ArgumentNullException.ThrowIfNull(role);
 
@@ -438,6 +421,8 @@ public class SqliteDataStore : IDataStore
             cmd.ExecuteNonQuery();
         }
     }
+    
+    #endregion
 
     #region UserRole
 
@@ -491,30 +476,6 @@ public class SqliteDataStore : IDataStore
         }
     }
 
-    public DbUserRole? FetchUserRole(string userId, string roleId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
-
-        Init();
-
-        using (var cmd = InternalConnection!.CreateCommand())
-        {
-            cmd.CommandText = "select * from UserRole where UserId = @userId and RoleId = @roleId";
-            cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Parameters.AddWithValue("@roleId", roleId);
-
-            cmd.Transaction = CurrentTransaction;
-
-            using (var reader = cmd.ExecuteReader())
-            {
-                if (reader.Read())
-                    return DbUserRole.CreateFromDataReader(reader);
-                else
-                    return null;
-            }
-        }
-    }
-
     public IEnumerable<DbUserRole> FetchAllUserRoles()
     {
         Init();
@@ -530,6 +491,24 @@ public class SqliteDataStore : IDataStore
                 while (reader.Read())
                     yield return DbUserRole.CreateFromDataReader(reader);
             }
+        }
+    }
+
+    public bool ExistsUsersInRole(string roleId)
+    {
+        ArgumentNullException.ThrowIfNull(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "select count(1) from UserRole where RoleId = @roleId";
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+
+            cmd.Transaction = CurrentTransaction;
+
+            var count = Convert.ToInt32(cmd.ExecuteScalar());
+            return count > 0;
         }
     }
 
@@ -549,6 +528,26 @@ public class SqliteDataStore : IDataStore
             cmd.Transaction = CurrentTransaction;
 
             cmd.ExecuteNonQuery();
+        }
+    }
+
+    public IEnumerable<string> GetUserRoleMemberships(string userId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = "select distinct RoleId from UserRole where UserId = @userId";
+            cmd.Parameters.AddWithValue("@userId", userId);
+
+            cmd.Transaction = CurrentTransaction;
+            using (var reader = cmd.ExecuteReader())
+            {
+                while(reader.Read())
+                    yield return reader.GetString(0);
+            }
         }
     }
 
@@ -646,6 +645,31 @@ public class SqliteDataStore : IDataStore
             cmd.ExecuteNonQuery();
         }
     }
+    
+    public bool ExistsRolePrivilegesForRole(string roleId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            var strSql = new StringBuilder();
+            strSql.Append("select count(1) from RolePrivilege where RoleId=@roleId");
+
+            cmd.CommandText = strSql.ToString();
+            cmd.Parameters.AddWithValue("@roleId", roleId);
+
+            cmd.Transaction = CurrentTransaction;
+
+            var count = Convert.ToInt32(cmd.ExecuteScalar());
+            return count > 0;
+        }
+    }
+
+
 
     #endregion
 }
+
+// ReSharper restore InconsistentNaming

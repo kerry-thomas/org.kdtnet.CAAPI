@@ -147,6 +147,40 @@ namespace org.kdtnet.CAAPI.Tests
 
         [TestMethod]
         [TestCategory("ApplicationEngine.User.HappyPath")]
+        public void DeleteUser()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testUser = new DbUser() { UserId = "charlie.brown@peanuts.com", FriendlyName = "charlie brown", IsActive = true };
+            engine.CreateUser(testUser);
+            engine.DeleteUser(testUser.UserId);
+            Assert.IsFalse(engine.ExistsUser(testUser.UserId));
+            AssertAuditLogExists(ApplicationLocus.Administration.User.Delete);
+        }
+        
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.User.HappyPath")]
+        public void UpdateUser()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testUser = new DbUser() { UserId = "charlie.brown@peanuts.com", FriendlyName = "charlie brown", IsActive = true };
+            engine.CreateUser(testUser);
+            testUser.IsActive = false;
+            testUser.FriendlyName = "charlie brown 2";
+            engine.UpdateUser(testUser);
+            Assert.IsTrue(engine.ExistsUser(testUser.UserId));
+            var updatedUser = engine.FetchUser(testUser.UserId);
+            Assert.IsNotNull(updatedUser);
+            Assert.AreEqual(false, updatedUser.IsActive);
+            Assert.AreEqual("charlie brown 2", updatedUser.FriendlyName);
+            
+            AssertAuditLogExists(ApplicationLocus.Administration.User.Update);
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.User.HappyPath")]
         public void CreateAndFetchUser()
         {
             var engine = CreateDefaultEngine();
@@ -160,6 +194,17 @@ namespace org.kdtnet.CAAPI.Tests
             Assert.AreEqual(testUser.UserId, user.UserId);
             Assert.AreEqual(testUser.FriendlyName, user.FriendlyName);
             Assert.AreEqual(testUser.IsActive, user.IsActive);
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.User.HappyPath")]
+        public void FetchNonexistentUserReturnsNull()
+        {
+            var engine = CreateDefaultEngine();
+
+            var user = engine.FetchUser("abc");
+            Assert.IsNull(user);
+            AssertAuditLogExists(ApplicationLocus.Administration.User.Fetch);
         }
 
         #endregion
@@ -178,6 +223,35 @@ namespace org.kdtnet.CAAPI.Tests
             Assert.ThrowsException<ApiGenericException>(() => engine.CreateUser(testUserDupe));
         }
 
+        [TestMethod]
+        [TestCategory("ApplicationEngine.User.GrumpyPath")]
+        public void DeleteUserCurrentlyInRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+            var testRole = new DbRole() {RoleId = "r.test.1", FriendlyName = "role test 1"};
+            engine.CreateUser(testUser1);
+            engine.CreateRole(testRole);
+            engine.AddUserIdsToRole(testRole.RoleId, [testUser1.UserId]);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.DeleteUser(testUser1.UserId));
+            Assert.IsTrue(engine.ExistsUser(testUser1.UserId));
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.User.GrumpyPath")]
+        public void DeleteNonExistentUser()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testUser = new DbUser() { UserId = "charlie.brown@peanuts.com", FriendlyName = "charlie brown", IsActive = true };
+            engine.CreateUser(testUser);
+            Assert.ThrowsException<ApiGenericException>(() => engine.DeleteUser(testUser.UserId + "X"));
+            AssertAuditLogExists(ApplicationLocus.Administration.User.Delete);
+        }
+
         #endregion
 
         #endregion
@@ -187,7 +261,7 @@ namespace org.kdtnet.CAAPI.Tests
         #region Happy Path
 
         [TestMethod]
-        [TestCategory("ApplicationEngine.User.HappyPath")]
+        [TestCategory("ApplicationEngine.Role.HappyPath")]
         public void CreateRole()
         {
             var engine = CreateDefaultEngine();
@@ -195,10 +269,44 @@ namespace org.kdtnet.CAAPI.Tests
             var testRole = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
             engine.CreateRole(testRole);
             Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Create);
         }
 
         [TestMethod]
-        [TestCategory("ApplicationEngine.User.HappyPath")]
+        [TestCategory("ApplicationEngine.Role.HappyPath")]
+        public void UpdateRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
+            engine.CreateRole(testRole);
+            Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
+            
+            testRole.FriendlyName = "role test 1 ex";
+            engine.UpdateRole(testRole);
+            
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Update);
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Role.HappyPath")]
+        public void DeleteRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
+            
+            engine.CreateRole(testRole);
+            Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
+
+            engine.DeleteRole(testRole.RoleId);
+            Assert.IsFalse(engine.ExistsRole(testRole.RoleId));
+
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Delete);
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Role.HappyPath")]
         public void CreateAndFetchRole()
         {
             var engine = CreateDefaultEngine();
@@ -212,12 +320,40 @@ namespace org.kdtnet.CAAPI.Tests
             Assert.AreEqual(role.FriendlyName,  testRole.FriendlyName);
         }
 
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Role.HappyPath")]
+        public void FetchNonexistentRoleReturnsNull()
+        {
+            var engine = CreateDefaultEngine();
+
+            var role = engine.FetchRole("abc");
+            Assert.IsNull(role);
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Fetch);
+        }
+
         #endregion
 
         #region Grumpy Path
 
         [TestMethod]
-        [TestCategory("ApplicationEngine.User.GrumpyPath")]
+        [TestCategory("ApplicationEngine.Role.GrumpyPath")]
+        public void UpdateNonexistentRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
+            engine.CreateRole(testRole);
+            Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
+
+            testRole.RoleId = "r.test.2";
+            testRole.FriendlyName = "role test 2 ex";
+            Assert.ThrowsException<ApiGenericException>(() => engine.UpdateRole(testRole));
+            
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Update);
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Role.GrumpyPath")]
         public void CreateDuplicateRole()
         {
             var engine = CreateDefaultEngine();
@@ -226,6 +362,56 @@ namespace org.kdtnet.CAAPI.Tests
             var testRoleDupe = new DbRole() { RoleId = "r.test.1", FriendlyName = "role test 1"};
             engine.CreateRole(testRole);
             Assert.ThrowsException<ApiGenericException>(() => engine.CreateRole(testRoleDupe));
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Role.GrumpyPath")]
+        public void DeleteNonexistentRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() {RoleId = "r.test.1", FriendlyName = "role test 1"};
+            engine.CreateRole(testRole);
+            Assert.IsTrue(engine.ExistsRole(testRole.RoleId));
+
+            var nonexistentRoleId = testRole.RoleId + "XXX";
+            Assert.IsFalse(engine.ExistsRole(nonexistentRoleId));
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.DeleteRole(nonexistentRoleId));
+
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Delete);
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Role.GrumpyPath")]
+        public void DeleteRoleWithUsers()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testRole = new DbRole() {RoleId = "r.test.1", FriendlyName = "role test 1"};
+            engine.CreateUser(testUser1);
+            engine.CreateRole(testRole);
+            engine.AddUserIdsToRole(testRole.RoleId, [testUser1.UserId]);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.DeleteRole(testRole.RoleId));
+
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Delete);
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.Role.GrumpyPath")]
+        public void DeleteRoleWithPrivileges()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() {RoleId = "r.test.1", FriendlyName = "role test 1"};
+            engine.CreateRole(testRole);
+            engine.GrantRolePrivilege(testRole.RoleId, EPrivilege.SystemAdmin);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.DeleteRole(testRole.RoleId));
+
+            AssertAuditLogExists(ApplicationLocus.Administration.Role.Delete);
         }
 
         #endregion
@@ -292,6 +478,22 @@ namespace org.kdtnet.CAAPI.Tests
 
         }
         
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void RemoveEmptyAndNullListOfUserIdFromRoleNoError()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            
+            engine.RemoveUserIdsFromRole(testRole.RoleId , []);
+            engine.RemoveUserIdsFromRole(testRole.RoleId, null!);
+        }
+        
         #endregion
 
         #region Grumpy Path
@@ -304,7 +506,7 @@ namespace org.kdtnet.CAAPI.Tests
 
             var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
             engine.CreateRole(testRole);
-            Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole("r.test", ["user.nonexistent"]));
+            Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole(testRole.RoleId, ["user.nonexistent"]));
         }
 
         [TestMethod]
@@ -322,6 +524,69 @@ namespace org.kdtnet.CAAPI.Tests
             engine.CreateUser(testUser2);
             
             Assert.ThrowsException<ApiGenericException>(() => engine.AddUserIdsToRole(testRole.RoleId + "X", ["charlie.brown", "sally.brown"]));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void RemoveUserFromNonexistentRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.RemoveUserIdsFromRole(testRole.RoleId + "X", ["charlie.brown", "sally.brown"]));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void RemoveNonExistentUserFromRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            engine.CreateRole(testRole);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.RemoveUserIdsFromRole(testRole.RoleId, ["user.nonexistent"]));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void RemoveNullBlankEmptyUserIdFromRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            engine.CreateRole(testRole);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.RemoveUserIdsFromRole(testRole.RoleId, [null!]));
+            Assert.ThrowsException<ApiGenericException>(() => engine.RemoveUserIdsFromRole(testRole.RoleId, [string.Empty]));
+            Assert.ThrowsException<ApiGenericException>(() => engine.RemoveUserIdsFromRole(testRole.RoleId, [" "]));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.UserRole.GrumpyPath")]
+        public void RemoveUserNotInRoleFromRole()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testRole = new DbRole() { RoleId = "r.test", FriendlyName = "Test Role" };
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = true };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+            var testUser3 = new DbUser() { UserId = "linus.vanpelt", FriendlyName = "Linus.VanPelt", IsActive = true };
+
+            engine.CreateRole(testRole);
+            engine.CreateUser(testUser1);
+            engine.CreateUser(testUser2);
+            engine.CreateUser(testUser3);
+            engine.AddUserIdsToRole(ApplicationEngine.c__SystemAdmin_Builtin_Role, [testUser1.UserId, testUser2.UserId]);
+            
+            Assert.ThrowsException<ApiGenericException>(() => engine.RemoveUserIdsFromRole(testRole.RoleId, [testUser3.UserId]));
         }
         
         [TestMethod]
@@ -495,6 +760,22 @@ namespace org.kdtnet.CAAPI.Tests
         
         [TestMethod]
         [TestCategory("ApplicationEngine.PrivilegeAssertion.HappyPath")]
+        public void InactiveUserAccessDenied()
+        {
+            var engine = CreateDefaultEngine();
+
+            var testUser1 = new DbUser() { UserId = "charlie.brown", FriendlyName = "Charlie Brown", IsActive = false };
+            var testUser2 = new DbUser() { UserId = "sally.brown", FriendlyName = "Sally Brown", IsActive = true };
+
+            engine.CreateUser(testUser1);
+            engine.AddUserIdsToRole(ApplicationEngine.c__SystemAdmin_Builtin_Role, [testUser1.UserId]);
+            
+            TestActingUserIdentitySource!.ActingUserId = testUser1.UserId;
+            Assert.ThrowsException<ApiAccessDeniedException>(() => engine.CreateUser(testUser2));
+        }
+
+        [TestMethod]
+        [TestCategory("ApplicationEngine.PrivilegeAssertion.HappyPath")]
         public void PrivilegeAssertionBasicFunction()
         {
             var engine = CreateDefaultEngine();
@@ -521,7 +802,7 @@ namespace org.kdtnet.CAAPI.Tests
             TestActingUserIdentitySource!.ActingUserId = testUser1.UserId;
             engine.CreateUser(testUser4);
         }
-        
+
         #endregion
         
         #region Grumpy Path

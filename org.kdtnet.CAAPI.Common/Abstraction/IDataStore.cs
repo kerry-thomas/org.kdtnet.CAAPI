@@ -31,13 +31,15 @@ public interface IDataStore : IDisposable
     public void UpdateUser(DbUser user);
     DbUser? FetchUser(string userId);
     void DeleteUser(string userId);
+    IEnumerable<string> GetUserRoleMemberships(string userId);
     
     #endregion
     
     #region Role
     
     bool ExistsRole(string roleId);
-    bool PersistRole(DbRole role);
+    void InsertRole(DbRole role);
+    void UpdateRole(DbRole role);
     DbRole? FetchRole(string roleId);
     void DeleteRole(string roleId);
     
@@ -47,9 +49,9 @@ public interface IDataStore : IDisposable
     
     public bool ExistsUserRole(string userId, string roleId);
     bool PersistUserRole(DbUserRole userRole);
-    DbUserRole? FetchUserRole(string userId, string roleId);
     void DeleteUserRole(string userId, string roleId);
     IEnumerable<DbUserRole> FetchAllUserRoles();
+    bool ExistsUsersInRole(string roleId);
     
     #endregion
     
@@ -59,9 +61,11 @@ public interface IDataStore : IDisposable
     bool ExistsUserInRoleWithPrivilege(string userId, string privilegeId);
     void DeleteRolePrivilege(string roleId, string privilegeId);
     IEnumerable<string> AllUserIdsWithPrivilege(string privilegeId);
+    bool ExistsRolePrivilegesForRole(string roleId);
     
     #endregion
 
     void Initialize();
+
 
 }
