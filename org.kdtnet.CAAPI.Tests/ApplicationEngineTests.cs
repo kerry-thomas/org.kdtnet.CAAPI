@@ -35,21 +35,14 @@ namespace org.kdtnet.CAAPI.Tests
     {
         private Mock<ILogger>? MockLogger { get; set; }
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
-        //private SqlServerDataStore? TestDataStore { get; set; }
-        private MySqlDataStore? TestDataStore { get; set; }
-        //private PostgresDataStore? TestDataStore { get; set; }
-        //private SqliteInMemoryDataStore? TestDataStore { get; set; }
-        //private SqlitePhysicalDataStore? TestDataStore { get; set; }
+        private IDataStore? TestDataStore { get; set; }
         private TestingActingUserIdentitySource? TestActingUserIdentitySource { get; set; }
         private TestingAuditLogWriter? TestAuditLogWriter { get; set; }
         private AuditWrapper? TestAuditWrapper { get; set; }
 
-        [TestInitialize]
-        public void BeforeEachTest()
+        private void SetForMySql()
         {
-            MockLogger = new Mock<ILogger>();
-            MockConfigurationSource = new Mock<IConfigurationSource>();
-            MockConfigurationSource.Setup(c => c.ConfigObject).Returns(
+            MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
                 new ApplicationConfiguration()
                 {
                     Logging = new ApplicationConfigurationLogging()
@@ -58,19 +51,97 @@ namespace org.kdtnet.CAAPI.Tests
                     },
                     DataStore = new ApplicationConfigurationDataStore()
                     {
-                        //ConnectionString = "Data Source=:memory:" //sqlite in-memory
-                        //ConnectionString = "Data Source=~/caapi.db" //sqlite physical
-                        //ConnectionString = "Host=127.0.0.1;Port=5432;Database=caapi;Username=ucaapi;Password=pa$$word" //postgres
-                        ConnectionString = "Server=localhost;Database=caapi;Uid=ucaapi;Pwd=pa$$word;" //mysql
-                        //ConnectionString = "Server=localhost;Database=caapi;User Id=ucaapi;Password=p@$$w0rd;TrustServerCertificate=True;" //sql server
+                        ConnectionString = "Server=localhost;Database=caapi;Uid=ucaapi;Pwd=pa$$word;", //mysql
+                        TableSchema = "caapi",
                     }
                 });
-            //TestDataStore = new SqlServerDataStore(MockConfigurationSource.Object);
+            
             TestDataStore = new MySqlDataStore(MockConfigurationSource.Object);
-            //TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
-            //TestDataStore = new SqliteInMemoryDataStore();
-            //TestDataStore = new SqlitePhysicalDataStore(MockConfigurationSource.Object);
-            TestDataStore.Zap();
+        }
+
+        private void SetForSqlServer()
+        {
+            MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
+                new ApplicationConfiguration()
+                {
+                    Logging = new ApplicationConfigurationLogging()
+                    {
+                        Level = ELogLevel.Trace
+                    },
+                    DataStore = new ApplicationConfigurationDataStore()
+                    {
+                        ConnectionString = "Server=localhost;Database=caapi;User Id=ucaapi;Password=p@$$w0rd;TrustServerCertificate=True;", //sql server
+                        TableSchema = "dbo",
+                    }
+                });
+            
+            TestDataStore = new SqlServerDataStore(MockConfigurationSource.Object);
+        }
+
+        private void SetForPostgres()
+        {
+            MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
+                new ApplicationConfiguration()
+                {
+                    Logging = new ApplicationConfigurationLogging()
+                    {
+                        Level = ELogLevel.Trace
+                    },
+                    DataStore = new ApplicationConfigurationDataStore()
+                    {
+                        ConnectionString = "Host=127.0.0.1;Port=5432;Database=caapi;Username=ucaapi;Password=pa$$word", //postgres
+                        TableSchema = "public",
+                    }
+                });
+            
+            TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
+        }
+
+        private void SetForSqlitePhysical()
+        {
+            MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
+                new ApplicationConfiguration()
+                {
+                    Logging = new ApplicationConfigurationLogging()
+                    {
+                        Level = ELogLevel.Trace
+                    },
+                    DataStore = new ApplicationConfigurationDataStore()
+                    {
+                        ConnectionString = "Data Source=~/caapi.db", //sqlite physical
+                        TableSchema = "public",
+                    }
+                });
+            
+            TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
+        }
+
+        private void SetForSqliteInMemory()
+        {
+            MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
+                new ApplicationConfiguration()
+                {
+                    Logging = new ApplicationConfigurationLogging()
+                    {
+                        Level = ELogLevel.Trace
+                    },
+                    DataStore = new ApplicationConfigurationDataStore()
+                    {
+                        ConnectionString = "Data Source=:memory:", //sqlite in-memory
+                        TableSchema = "public",
+                    }
+                });
+            
+            TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
+        }
+
+        [TestInitialize]
+        public void BeforeEachTest()
+        {
+            MockLogger = new Mock<ILogger>();
+            MockConfigurationSource = new Mock<IConfigurationSource>();
+            SetForMySql();
+            TestDataStore!.Zap();
             TestActingUserIdentitySource = new TestingActingUserIdentitySource();
             TestAuditLogWriter = new TestingAuditLogWriter();
             TestAuditWrapper = new AuditWrapper(TestAuditLogWriter);

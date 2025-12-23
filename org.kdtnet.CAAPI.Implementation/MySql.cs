@@ -68,7 +68,7 @@ public class MySqlDataStore : DataStoreBase, IDataStore
 
     protected override bool ExistsTable(string tableName, DbTransaction tx)
     {
-        var sql = $"SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = 'caapi' AND table_name = '{tableName}'";
+        var sql = $"SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = '{ConfigurationSource.ConfigObject.DataStore.TableSchema}' AND table_name = '{tableName}'";
         using (var cmd = InternalConnection!.CreateCommand())
         {
             cmd.CommandText = sql;

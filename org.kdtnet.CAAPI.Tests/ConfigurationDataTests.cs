@@ -26,6 +26,7 @@ public class ConfigurationDataTests
             DataStore = new ApplicationConfigurationDataStore()
             {
                 ConnectionString = "test",
+                TableSchema = "test_schema",
             }
         };
     }
@@ -55,6 +56,7 @@ public class ConfigurationDataTests
             DataStore = new ApplicationConfigurationDataStore()
             {
                 ConnectionString = "test",
+                TableSchema = "test_schema",
             }
         };
         cfg.Validate();
@@ -74,6 +76,7 @@ public class ConfigurationDataTests
             DataStore = new ApplicationConfigurationDataStore()
             {
                 ConnectionString = "test",
+                TableSchema =  "test_schema",
             }
         };
         Assert.ThrowsException<ValidationException>(() => cfg1.Validate());

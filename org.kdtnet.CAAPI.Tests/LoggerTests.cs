@@ -31,6 +31,7 @@ public class LoggerTests
                 DataStore = new ApplicationConfigurationDataStore()
                 {
                     ConnectionString = "test",
+                    TableSchema = "test_schema",
                 }
             }
         );

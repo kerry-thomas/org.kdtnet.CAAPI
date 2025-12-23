@@ -6,9 +6,11 @@ namespace org.kdtnet.CAAPI.Common.Data.Configuration;
 public class ApplicationConfigurationDataStore : IValidateable
 {
     public required string ConnectionString { get; init; }
+    public required string TableSchema { get; init; }
     
     public void Validate()
     {
         ValidationHelper.AssertStringNotNull(ConnectionString);
+        ValidationHelper.AssertStringNotNull(TableSchema);
     }
 }
