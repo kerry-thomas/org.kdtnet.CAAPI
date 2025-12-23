@@ -35,6 +35,7 @@ namespace org.kdtnet.CAAPI.Tests
     {
         private Mock<ILogger>? MockLogger { get; set; }
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
+        //private PostgresDataStore? TestDataStore { get; set; }
         private SqliteInMemoryDataStore? TestDataStore { get; set; }
         //private SqlitePhysicalDataStore? TestDataStore { get; set; }
         private TestingActingUserIdentitySource? TestActingUserIdentitySource { get; set; }
@@ -55,10 +56,12 @@ namespace org.kdtnet.CAAPI.Tests
                     },
                     DataStore = new ApplicationConfigurationDataStore()
                     {
-                        //ConnectionString = "Data Source=:memory:"
-                        ConnectionString = "Data Source=/home/kdt/caapi.db"
+                        ConnectionString = "Data Source=:memory:"
+                        //ConnectionString = "Data Source=~/caapi.db"
+                        //ConnectionString = "Host=127.0.0.1;Port=5432;Database=caapi;Username=ucaapi;Password=pa$$word"
                     }
                 });
+            //TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
             TestDataStore = new SqliteInMemoryDataStore();
             //TestDataStore = new SqlitePhysicalDataStore(MockConfigurationSource.Object);
             TestDataStore.Zap();

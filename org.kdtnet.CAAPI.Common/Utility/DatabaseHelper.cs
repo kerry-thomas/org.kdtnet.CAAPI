@@ -22,7 +22,13 @@ public static class DatabaseHelper
 
         var ordinal = reader.GetOrdinal(columnName);
 
-        return reader.IsDBNull(ordinal) ? throw new DbNullColumnException(columnName) : reader.GetBoolean(ordinal);
+        if (reader.IsDBNull(ordinal))
+            throw new DbNullColumnException(columnName);
+                
+        var intValue = reader.GetInt32(ordinal);
+        return intValue != 0;
+
+        //return reader.IsDBNull(ordinal) ? throw new DbNullColumnException(columnName) : reader.GetBoolean(ordinal);
     }
 
     public static int GetInt32NotNull(this IDataReader reader, string columnName)

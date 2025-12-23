@@ -144,11 +144,19 @@ public class DatabaseHelperTests
         MockDataReader!.Setup(x => x.Read()).Returns(true);
         MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(false);
 
-        MockDataReader!.Setup(x => x.GetBoolean(It.IsAny<int>())).Returns(true);
+        MockDataReader!.Setup(x => x.GetInt32(It.IsAny<int>())).Returns(1);
         var v = MockDataReader.Object.GetBoolNotNull("somecolumn");
         Assert.AreEqual(true, v);
 
-        MockDataReader!.Setup(x => x.GetBoolean(It.IsAny<int>())).Returns(false);
+        MockDataReader!.Setup(x => x.GetInt32(It.IsAny<int>())).Returns(2);
+        v = MockDataReader.Object.GetBoolNotNull("somecolumn");
+        Assert.AreEqual(true, v);
+
+        MockDataReader!.Setup(x => x.GetInt32(It.IsAny<int>())).Returns(-2);
+        v = MockDataReader.Object.GetBoolNotNull("somecolumn");
+        Assert.AreEqual(true, v);
+        
+        MockDataReader!.Setup(x => x.GetInt32(It.IsAny<int>())).Returns(0);
         v = MockDataReader.Object.GetBoolNotNull("somecolumn");
         Assert.AreEqual(false, v);
     }

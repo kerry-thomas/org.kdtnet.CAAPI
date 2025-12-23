@@ -51,7 +51,7 @@ public abstract class DataStoreBase : IDisposable
             }
         }
     }
-    
+
     #region Initialize/DDL
 
     public void Initialize()
@@ -81,6 +81,7 @@ public abstract class DataStoreBase : IDisposable
 
             tx.Commit();
         }
+
         PostInitDdl();
     }
 
@@ -124,16 +125,15 @@ public abstract class DataStoreBase : IDisposable
     #endregion
 
     #endregion
-    
+
     #region Drop Table
 
     private void DropTableIfExists(string tableName)
     {
         Debug.Assert(tableName != null);
         if (ExistsTable(tableName, null!)) RunDdl($"drop table \"{tableName}\"", null!);
-        
     }
-    
+
     #endregion
 
     private void CreateUserTableIfNeeded(DbTransaction tx)
@@ -165,11 +165,11 @@ public abstract class DataStoreBase : IDisposable
             cmd.ExecuteNonQuery();
         }
     }
-    
+
     #endregion
 
     #region Transaction Wrappers
-    
+
     public void TransactionWrap(Func<bool> callback)
     {
         CoreTransactionWrap(iCreatedTransaction =>
@@ -228,11 +228,11 @@ public abstract class DataStoreBase : IDisposable
             }
         }
     }
-    
+
     #endregion
 
     #region User
-    
+
     public void UpdateUser(DbUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -241,9 +241,9 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "update User SET FriendlyName=@friendlyName, IsActive=@isActive where UserId=@userId";
+            cmd.CommandText = """update "User" SET "FriendlyName"=@friendlyName, "IsActive"=@isActive where "UserId"=@userId""";
             cmd.Parameters.Add(CreateParameter("@friendlyName", user.FriendlyName));
-            cmd.Parameters.Add(CreateParameter("@isActive", user.IsActive));
+            cmd.Parameters.Add(CreateParameter("@isActive", user.IsActive ? 1 : 0));
             cmd.Parameters.Add(CreateParameter("@userId", user.UserId));
 
             cmd.Transaction = CurrentTransaction;
@@ -261,10 +261,10 @@ public abstract class DataStoreBase : IDisposable
         using (var cmd = InternalConnection!.CreateCommand())
         {
             cmd.CommandText =
-                "insert into User (UserId, FriendlyName, IsActive) VALUES (@userId, @friendlyName, @isActive)";
+                """insert into "User" ("UserId", "FriendlyName", "IsActive") VALUES (@userId, @friendlyName, @isActive)""";
             cmd.Parameters.Add(CreateParameter("@userId", user.UserId));
             cmd.Parameters.Add(CreateParameter("@friendlyName", user.FriendlyName));
-            cmd.Parameters.Add(CreateParameter("@isActive", user.IsActive));
+            cmd.Parameters.Add(CreateParameter("@isActive", user.IsActive ? 1 : 0));
 
             cmd.Transaction = CurrentTransaction;
 
@@ -280,7 +280,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select * from User where UserId = @userId";
+            cmd.CommandText = """select * from "User" where "UserId" = @userId""";
             cmd.Parameters.Add(CreateParameter("@userId", userId));
 
             cmd.Transaction = CurrentTransaction;
@@ -303,7 +303,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select count(1) from User where UserId = @userId";
+            cmd.CommandText = """select count(1) from "User" where "UserId" = @userId""";
             cmd.Parameters.Add(CreateParameter("@userId", userId));
 
             cmd.Transaction = CurrentTransaction;
@@ -321,7 +321,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "delete from User where UserId = @userId";
+            cmd.CommandText = """delete from "User" where "UserId" = @userId""";
             cmd.Parameters.Add(CreateParameter("@userId", userId));
 
             cmd.Transaction = CurrentTransaction;
@@ -331,9 +331,9 @@ public abstract class DataStoreBase : IDisposable
     }
 
     #endregion
-    
+
     #region Role
-    
+
     public void InsertRole(DbRole role)
     {
         ArgumentNullException.ThrowIfNull(role);
@@ -342,7 +342,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "insert into Role (RoleId, FriendlyName) VALUES (@roleId, @friendlyName)";
+            cmd.CommandText = """insert into "Role" ("RoleId", "FriendlyName") VALUES (@roleId, @friendlyName)""";
             cmd.Parameters.Add(CreateParameter("@roleId", role.RoleId));
             cmd.Parameters.Add(CreateParameter("@friendlyName", role.FriendlyName));
 
@@ -360,7 +360,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "update Role SET FriendlyName=@friendlyName where RoleId=@roleId";
+            cmd.CommandText = """update "Role" SET "FriendlyName"=@friendlyName where "RoleId"=@roleId""";
             cmd.Parameters.Add(CreateParameter("@friendlyName", role.FriendlyName));
             cmd.Parameters.Add(CreateParameter("@roleId", role.RoleId));
 
@@ -378,7 +378,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select count(1) from Role where RoleId = @roleId";
+            cmd.CommandText = """select count(1) from "Role" where "RoleId" = @roleId""";
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
             cmd.Transaction = CurrentTransaction;
 
@@ -395,7 +395,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select * from Role where RoleId = @roleId";
+            cmd.CommandText = """select * from "Role" where "RoleId" = @roleId""";
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
 
             cmd.Transaction = CurrentTransaction;
@@ -418,7 +418,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "delete from Role where RoleId = @roleId";
+            cmd.CommandText = """delete from "Role" where "RoleId" = @roleId""";
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
 
             cmd.Transaction = CurrentTransaction;
@@ -426,7 +426,7 @@ public abstract class DataStoreBase : IDisposable
             cmd.ExecuteNonQuery();
         }
     }
-    
+
     #endregion
 
     #region UserRole
@@ -452,7 +452,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select count(1) from UserRole where UserId = @userId and RoleId = @roleId";
+            cmd.CommandText = """select count(1) from "UserRole" where "UserId" = @userId and "RoleId" = @roleId""";
             cmd.Parameters.Add(CreateParameter("@userId", userId));
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
 
@@ -471,7 +471,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "insert into UserRole (UserId, RoleId) VALUES (@userId, @roleId)";
+            cmd.CommandText = """insert into "UserRole" ("UserId", "RoleId") VALUES (@userId, @roleId)""";
             cmd.Parameters.Add(CreateParameter("@userId", userRole.UserId));
             cmd.Parameters.Add(CreateParameter("@roleId", userRole.RoleId));
 
@@ -487,7 +487,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select * from UserRole";
+            cmd.CommandText = """select * from "UserRole" """;
 
             cmd.Transaction = CurrentTransaction;
 
@@ -507,7 +507,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select count(1) from UserRole where RoleId = @roleId";
+            cmd.CommandText = """select count(1) from "UserRole" where "RoleId" = @roleId""";
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
 
             cmd.Transaction = CurrentTransaction;
@@ -526,7 +526,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "delete from UserRole where UserId = @userId and RoleId = @roleId";
+            cmd.CommandText = """delete from "UserRole" where "UserId" = @userId and "RoleId" = @roleId""";
             cmd.Parameters.Add(CreateParameter("@userId", userId));
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
 
@@ -544,30 +544,29 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "select distinct RoleId from UserRole where UserId = @userId";
+            cmd.CommandText = """select distinct "RoleId" from "UserRole" where "UserId" = @userId""";
             cmd.Parameters.Add(CreateParameter("@userId", userId));
 
             cmd.Transaction = CurrentTransaction;
             using (var reader = cmd.ExecuteReader())
             {
-                while(reader.Read())
+                while (reader.Read())
                     yield return reader.GetString(0);
             }
         }
-    } 
-    
+    }
+
     public IEnumerable<string> AllUserIdsWithPrivilege(string privilegeId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(privilegeId);
-        var strSql = new StringBuilder();
-        strSql.Append(" select distinct ur.userId");
-        strSql.Append(" from RolePrivilege rp");
-        strSql.Append("   inner join UserRole ur on (rp.RoleId = ur.RoleId)");
-        strSql.Append(" where rp.PrivilegeId = @privilegeId");
-
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = strSql.ToString();
+            cmd.CommandText = """
+                              select distinct ur."UserId"
+                              from "RolePrivilege" rp
+                                inner join "UserRole" ur on (rp."RoleId" = ur."RoleId")
+                              where rp."PrivilegeId" = @privilegeId
+                              """;
             cmd.Parameters.Add(CreateParameter("@privilegeId", privilegeId));
 
             var returnValue = new List<string>();
@@ -594,7 +593,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            cmd.CommandText = "insert into RolePrivilege (RoleId, PrivilegeId) VALUES (@roleId, @privilegeId)";
+            cmd.CommandText = """insert into "RolePrivilege" ("RoleId", "PrivilegeId") VALUES (@roleId, @privilegeId)""";
             cmd.Parameters.Add(CreateParameter("@roleId", rolePrivilege.RoleId));
             cmd.Parameters.Add(CreateParameter("@privilegeId", rolePrivilege.PrivilegeId));
 
@@ -614,11 +613,13 @@ public abstract class DataStoreBase : IDisposable
         using (var cmd = InternalConnection!.CreateCommand())
         {
             var strSql = new StringBuilder();
-            strSql.Append(" select count(1)");
-            strSql.Append(" from RolePrivilege rp");
-            strSql.Append("   inner join UserRole ur on (rp.RoleId=ur.RoleId and rp.PrivilegeId=@privilegeId and ur.UserId=@userId)");
+            
 
-            cmd.CommandText = strSql.ToString();
+            cmd.CommandText = """
+                              select count(1)
+                              from "RolePrivilege" rp
+                                inner join "UserRole" ur on (rp."RoleId"=ur."RoleId" and rp."PrivilegeId"=@privilegeId and ur."UserId"=@userId)
+                              """;
             cmd.Parameters.Add(CreateParameter("@userId", userId));
             cmd.Parameters.Add(CreateParameter("@privilegeId", privilegeId));
 
@@ -638,10 +639,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            var strSql = new StringBuilder();
-            strSql.Append(" delete from RolePrivilege where RoleId=@roleId and PrivilegeId=@privilegeId");
-
-            cmd.CommandText = strSql.ToString();
+            cmd.CommandText = """delete from "RolePrivilege" where "RoleId"=@roleId and "PrivilegeId"=@privilegeId""";
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
             cmd.Parameters.Add(CreateParameter("@privilegeId", privilegeId));
 
@@ -650,7 +648,7 @@ public abstract class DataStoreBase : IDisposable
             cmd.ExecuteNonQuery();
         }
     }
-    
+
     public bool ExistsRolePrivilegesForRole(string roleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
@@ -659,10 +657,7 @@ public abstract class DataStoreBase : IDisposable
 
         using (var cmd = InternalConnection!.CreateCommand())
         {
-            var strSql = new StringBuilder();
-            strSql.Append("select count(1) from RolePrivilege where RoleId=@roleId");
-
-            cmd.CommandText = strSql.ToString();
+            cmd.CommandText = """select count(1) from "RolePrivilege" where "RoleId"=@roleId""";
             cmd.Parameters.Add(CreateParameter("@roleId", roleId));
 
             cmd.Transaction = CurrentTransaction;
@@ -671,7 +666,7 @@ public abstract class DataStoreBase : IDisposable
             return count > 0;
         }
     }
-    
+
     #endregion
 }
 
