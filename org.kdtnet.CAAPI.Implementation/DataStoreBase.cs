@@ -88,39 +88,39 @@ public abstract class DataStoreBase : IDisposable
     #region DDL SQL
 
     #region Create Table Statements
+    
+    protected virtual string c__Sql_Ddl_CreateTable_User { get; } = """
+                                                                    CREATE TABLE "User" (
+                                                                    	        "UserId"        VARCHAR(100) NOT NULL,
+                                                                    	        "FriendlyName"  VARCHAR(100) NOT NULL,
+                                                                    	        "IsActive"      INTEGER NOT NULL,
+                                                                    	        PRIMARY KEY("UserId")
+                                                                                    )  
+                                                                    """;
 
-    protected virtual string c__Sql_Ddl_CreateTable_User { get; }= """
-                                                                 CREATE TABLE "User" (
-                                                                 	        "UserId"        TEXT NOT NULL,
-                                                                 	        "FriendlyName"  TEXT NOT NULL,
-                                                                 	        "IsActive"      INTEGER NOT NULL,
-                                                                 	        PRIMARY KEY("UserId")
-                                                                                 )  
-                                                                 """;
-
-    protected virtual string c__Sql_Ddl_CreateTable_Role { get; }= """
-                                                                   CREATE TABLE "Role" (
-                                                                   	        "RoleId"       TEXT NOT NULL,
-                                                                   	        "FriendlyName" TEXT NOT NULL,
-                                                                   	        PRIMARY KEY("RoleId") 
-                                                                               );
-                                                                   """;
+    protected virtual string c__Sql_Ddl_CreateTable_Role { get; } = """
+                                                                    CREATE TABLE "Role" (
+                                                                    	        "RoleId"       VARCHAR(100) NOT NULL,
+                                                                    	        "FriendlyName" VARCHAR(100) NOT NULL,
+                                                                    	        PRIMARY KEY("RoleId") 
+                                                                                );
+                                                                    """;
 
     protected virtual string c__Sql_Ddl_CreateTable_UserRole { get; } = """
                                                                         CREATE TABLE "UserRole" (
-                                                                        	        "UserId" TEXT NOT NULL REFERENCES "User"("UserId"),
-                                                                        	        "RoleId" TEXT NOT NULL REFERENCES "Role"("RoleId"),
+                                                                        	        "UserId" VARCHAR(100) NOT NULL REFERENCES "User"("UserId"),
+                                                                        	        "RoleId" VARCHAR(100) NOT NULL REFERENCES "Role"("RoleId"),
                                                                         	        PRIMARY KEY("UserId","RoleId" )
                                                                                     );
                                                                         """;
 
-    protected virtual string c__Sql_Ddl_CreateTable_RolePrivilege { get; }= """
-                                                                            CREATE TABLE "RolePrivilege" (
-                                                                            	        "RoleId"      TEXT NOT NULL REFERENCES "Role"("RoleId"),
-                                                                            	        "PrivilegeId" TEXT NOT NULL,
-                                                                            	        PRIMARY KEY("RoleId","PrivilegeId" )
-                                                                                        );
-                                                                            """;
+    protected virtual string c__Sql_Ddl_CreateTable_RolePrivilege { get; } = """
+                                                                             CREATE TABLE "RolePrivilege" (
+                                                                             	        "RoleId"      VARCHAR(100) NOT NULL REFERENCES "Role"("RoleId"),
+                                                                             	        "PrivilegeId" VARCHAR(100) NOT NULL,
+                                                                             	        PRIMARY KEY("RoleId","PrivilegeId" )
+                                                                                         );
+                                                                             """;
 
     #endregion
 

@@ -23,39 +23,6 @@ public class SqlServerDataStore : DataStoreBase, IDataStore
         return new SqlParameter(parameterName, parameterValue);
     }
 
-    protected override string c__Sql_Ddl_CreateTable_User { get; } = """
-                                                                    CREATE TABLE "User" (
-                                                                    	        "UserId"        NVARCHAR(100) NOT NULL,
-                                                                    	        "FriendlyName"  NVARCHAR(100) NOT NULL,
-                                                                    	        "IsActive"      INTEGER NOT NULL,
-                                                                    	        PRIMARY KEY("UserId")
-                                                                                    )  
-                                                                    """;
-
-    protected override string c__Sql_Ddl_CreateTable_Role { get; } = """
-                                                                    CREATE TABLE "Role" (
-                                                                    	        "RoleId"       NVARCHAR(100) NOT NULL,
-                                                                    	        "FriendlyName" NVARCHAR(100) NOT NULL,
-                                                                    	        PRIMARY KEY("RoleId") 
-                                                                                );
-                                                                    """;
-
-    protected override string c__Sql_Ddl_CreateTable_UserRole { get; } = """
-                                                                        CREATE TABLE "UserRole" (
-                                                                        	        "UserId" NVARCHAR(100) NOT NULL REFERENCES "User"("UserId"),
-                                                                        	        "RoleId" NVARCHAR(100) NOT NULL REFERENCES "Role"("RoleId"),
-                                                                        	        PRIMARY KEY("UserId","RoleId" )
-                                                                                    );
-                                                                        """;
-
-    protected override string c__Sql_Ddl_CreateTable_RolePrivilege { get; } = """
-                                                                             CREATE TABLE "RolePrivilege" (
-                                                                             	        "RoleId"      NVARCHAR(100) NOT NULL REFERENCES "Role"("RoleId"),
-                                                                             	        "PrivilegeId" NVARCHAR(100) NOT NULL,
-                                                                             	        PRIMARY KEY("RoleId","PrivilegeId" )
-                                                                                         );
-                                                                             """;
-
     protected override void PreInitDdl()
     {
     }

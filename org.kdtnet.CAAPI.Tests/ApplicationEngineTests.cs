@@ -108,12 +108,12 @@ namespace org.kdtnet.CAAPI.Tests
                     },
                     DataStore = new ApplicationConfigurationDataStore()
                     {
-                        ConnectionString = "Data Source=~/caapi.db", //sqlite physical
+                        ConnectionString = "Data Source=/home/kdt/caapi.db", //sqlite physical
                         TableSchema = "public",
                     }
                 });
             
-            TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
+            TestDataStore = new SqlitePhysicalDataStore(MockConfigurationSource.Object);
         }
 
         private void SetForSqliteInMemory()
@@ -132,7 +132,7 @@ namespace org.kdtnet.CAAPI.Tests
                     }
                 });
             
-            TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
+            TestDataStore = new SqliteInMemoryDataStore();
         }
 
         [TestInitialize]
@@ -140,7 +140,11 @@ namespace org.kdtnet.CAAPI.Tests
         {
             MockLogger = new Mock<ILogger>();
             MockConfigurationSource = new Mock<IConfigurationSource>();
-            SetForMySql();
+            //SetForMySql();
+            //SetForPostgres();
+            //SetForSqliteInMemory();
+            //SetForSqlitePhysical();
+            SetForSqlServer();
             TestDataStore!.Zap();
             TestActingUserIdentitySource = new TestingActingUserIdentitySource();
             TestAuditLogWriter = new TestingAuditLogWriter();

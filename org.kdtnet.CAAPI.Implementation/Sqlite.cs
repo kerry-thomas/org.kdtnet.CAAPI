@@ -19,6 +19,39 @@ public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore, IDisposab
     {
         return new SqliteParameter(parameterName, parameterValue);
     }
+    
+     protected override string c__Sql_Ddl_CreateTable_User { get; }= """
+                                                                CREATE TABLE "User" (
+                                                                	        "UserId"        TEXT NOT NULL,
+                                                                	        "FriendlyName"  TEXT NOT NULL,
+                                                                	        "IsActive"      INTEGER NOT NULL,
+                                                                	        PRIMARY KEY("UserId")
+                                                                                )  
+                                                                """;
+
+   protected override string c__Sql_Ddl_CreateTable_Role { get; }= """
+                                                                   CREATE TABLE "Role" (
+                                                                   	        "RoleId"       TEXT NOT NULL,
+                                                                   	        "FriendlyName" TEXT NOT NULL,
+                                                                   	        PRIMARY KEY("RoleId") 
+                                                                               );
+                                                                   """;
+
+   protected override string c__Sql_Ddl_CreateTable_UserRole { get; } = """
+                                                                        CREATE TABLE "UserRole" (
+                                                                        	        "UserId" TEXT NOT NULL REFERENCES "User"("UserId"),
+                                                                        	        "RoleId" TEXT NOT NULL REFERENCES "Role"("RoleId"),
+                                                                        	        PRIMARY KEY("UserId","RoleId" )
+                                                                                    );
+                                                                        """;
+
+   protected override string c__Sql_Ddl_CreateTable_RolePrivilege { get; }= """
+                                                                            CREATE TABLE "RolePrivilege" (
+                                                                            	        "RoleId"      TEXT NOT NULL REFERENCES "Role"("RoleId"),
+                                                                            	        "PrivilegeId" TEXT NOT NULL,
+                                                                            	        PRIMARY KEY("RoleId","PrivilegeId" )
+                                                                                        );
+                                                                            """;
 
     protected override void PreInitDdl()
     {
