@@ -34,6 +34,8 @@ public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore, IDisposab
         RunDdl("PRAGMA foreign_keys = ON;", null!);
     }
 
+    protected override string SetIdentifierTicks(string sql) => sql;
+
     protected override bool ExistsTable(string tableName, DbTransaction tx)
     {
         var sql = $"SELECT count(1) FROM sqlite_master WHERE type='table' AND name='{tableName}'";

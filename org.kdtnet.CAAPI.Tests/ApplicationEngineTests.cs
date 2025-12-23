@@ -35,8 +35,10 @@ namespace org.kdtnet.CAAPI.Tests
     {
         private Mock<ILogger>? MockLogger { get; set; }
         private Mock<IConfigurationSource>? MockConfigurationSource { get; set; }
+        //private SqlServerDataStore? TestDataStore { get; set; }
+        private MySqlDataStore? TestDataStore { get; set; }
         //private PostgresDataStore? TestDataStore { get; set; }
-        private SqliteInMemoryDataStore? TestDataStore { get; set; }
+        //private SqliteInMemoryDataStore? TestDataStore { get; set; }
         //private SqlitePhysicalDataStore? TestDataStore { get; set; }
         private TestingActingUserIdentitySource? TestActingUserIdentitySource { get; set; }
         private TestingAuditLogWriter? TestAuditLogWriter { get; set; }
@@ -56,13 +58,17 @@ namespace org.kdtnet.CAAPI.Tests
                     },
                     DataStore = new ApplicationConfigurationDataStore()
                     {
-                        ConnectionString = "Data Source=:memory:"
-                        //ConnectionString = "Data Source=~/caapi.db"
-                        //ConnectionString = "Host=127.0.0.1;Port=5432;Database=caapi;Username=ucaapi;Password=pa$$word"
+                        //ConnectionString = "Data Source=:memory:" //sqlite in-memory
+                        //ConnectionString = "Data Source=~/caapi.db" //sqlite physical
+                        //ConnectionString = "Host=127.0.0.1;Port=5432;Database=caapi;Username=ucaapi;Password=pa$$word" //postgres
+                        ConnectionString = "Server=localhost;Database=caapi;Uid=ucaapi;Pwd=pa$$word;" //mysql
+                        //ConnectionString = "Server=localhost;Database=caapi;User Id=ucaapi;Password=p@$$w0rd;TrustServerCertificate=True;" //sql server
                     }
                 });
+            //TestDataStore = new SqlServerDataStore(MockConfigurationSource.Object);
+            TestDataStore = new MySqlDataStore(MockConfigurationSource.Object);
             //TestDataStore = new PostgresDataStore(MockConfigurationSource.Object);
-            TestDataStore = new SqliteInMemoryDataStore();
+            //TestDataStore = new SqliteInMemoryDataStore();
             //TestDataStore = new SqlitePhysicalDataStore(MockConfigurationSource.Object);
             TestDataStore.Zap();
             TestActingUserIdentitySource = new TestingActingUserIdentitySource();

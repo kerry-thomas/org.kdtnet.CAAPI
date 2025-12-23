@@ -31,6 +31,8 @@ public class PostgresDataStore: DataStoreBase, IDataStore
     {
     }
 
+    protected override string SetIdentifierTicks(string sql) => sql;
+
     protected override bool ExistsTable(string tableName, DbTransaction tx)
     {
         var sql = $"SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{tableName}'";
