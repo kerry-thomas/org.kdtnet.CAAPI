@@ -26,6 +26,7 @@ namespace org.kdtnet.CAAPI.Tests
         public void Audit(AuditLogEntry auditLogEntry)
         {
             LogEntries.Add(auditLogEntry);
+            Debug.WriteLine($"{auditLogEntry.OccurrenceUtc:yyyy/MM/dd HH:mm:ss} {auditLogEntry.CorrelationId} {auditLogEntry.ActingUserId} {auditLogEntry.EntryType} {auditLogEntry.Locus} {auditLogEntry.Summary} {auditLogEntry.Detail} ");
         }
     }
     
@@ -142,9 +143,9 @@ namespace org.kdtnet.CAAPI.Tests
             MockConfigurationSource = new Mock<IConfigurationSource>();
             //SetForMySql();
             //SetForPostgres();
-            //SetForSqliteInMemory();
+            SetForSqliteInMemory();
             //SetForSqlitePhysical();
-            SetForSqlServer();
+            //SetForSqlServer();
             TestDataStore!.Zap();
             TestActingUserIdentitySource = new TestingActingUserIdentitySource();
             TestAuditLogWriter = new TestingAuditLogWriter();

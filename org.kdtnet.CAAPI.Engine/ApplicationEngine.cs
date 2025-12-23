@@ -16,12 +16,18 @@ public class ApplicationEngine
     public const string c__SystemAdmin_Builtin_User = "u.system.admin";
     public const string c__SystemAdmin_Builtin_Role = "r.system.admin";
 
+    #region Internal Properties
+    
     private ILogger Logger { get; }
     private IConfigurationSource ConfigurationSource { get; }
     private IDataStore DataStore { get; }
     private IActingUserIdentitySource ActingUserIdentitySource { get; }
     private AuditWrapper AuditWrapper { get; }
+    
+    #endregion
 
+    #region Constructor
+    
     public ApplicationEngine(ILogger logger, IConfigurationSource configurationSource, IDataStore dataStore,
         IActingUserIdentitySource actingUserIdentitySource, AuditWrapper auditWrapper)
     {
@@ -32,6 +38,8 @@ public class ApplicationEngine
                                    throw new ArgumentNullException(nameof(actingUserIdentitySource));
         AuditWrapper = auditWrapper ?? throw new ArgumentNullException(nameof(auditWrapper));
     }
+    
+    #endregion
 
     public void Initialize()
     {
@@ -49,6 +57,8 @@ public class ApplicationEngine
             return true;
         });
     }
+    
+    #region Private Methods
 
     private void AssertPrivilege(EPrivilege privilegeAsserted)
     {
@@ -86,6 +96,8 @@ public class ApplicationEngine
     {
         return methodName;
     }
+    
+    #endregion
 
     #region Administration
 
@@ -112,7 +124,6 @@ public class ApplicationEngine
                 adcc.DetailCallback($"user {user.UserId} IsActive has been set to {user.IsActive}");
             });
     }
-
 
     public void DeleteUser(string userId)
     {
@@ -434,8 +445,8 @@ public class ApplicationEngine
     }
 
     #endregion
-
-    #endregion
+    
+    #region RolePrivilege
 
     public void GrantRolePrivilege(string roleId, EPrivilege privilege)
     {
@@ -514,6 +525,10 @@ public class ApplicationEngine
                     adcc.DetailCallback($"user {noLongerAdmin} has been revoked admin via role {roleId}");
             });
     }
+    
+    #endregion
+    
+    #endregion`
 }
 
 // ReSharper restore InconsistentNaming

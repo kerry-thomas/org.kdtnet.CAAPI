@@ -83,7 +83,7 @@ public class AuditWrapper
                 OccurrenceUtc = DateTime.UtcNow,
                 Locus = locus,
                 Summary = summary,
-                Detail = $"EXCEPTION: {ex.ToString()}",
+                Detail = $"EXCEPTION: {ex}",
             });
             throw;
         }
