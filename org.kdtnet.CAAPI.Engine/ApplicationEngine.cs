@@ -3,11 +3,15 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Abstraction.Logging;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
+using org.kdtnet.CAAPI.Common.Data.RestApi;
 using org.kdtnet.CAAPI.Common.Domain.Audit;
+using org.kdtnet.CAAPI.Common.Utility;
 
 namespace org.kdtnet.CAAPI.Engine;
 
@@ -17,19 +21,20 @@ public class ApplicationEngine
     public const string c__SystemAdmin_Builtin_Role = "r.system.admin";
 
     #region Internal Properties
-    
+
     private ILogger Logger { get; }
     private IConfigurationSource ConfigurationSource { get; }
     private IDataStore DataStore { get; }
     private IActingUserIdentitySource ActingUserIdentitySource { get; }
     private AuditWrapper AuditWrapper { get; }
-    
+    private ITimeStampSource TimeStampSource { get; }
+
     #endregion
 
     #region Constructor
-    
+
     public ApplicationEngine(ILogger logger, IConfigurationSource configurationSource, IDataStore dataStore,
-        IActingUserIdentitySource actingUserIdentitySource, AuditWrapper auditWrapper)
+        IActingUserIdentitySource actingUserIdentitySource, AuditWrapper auditWrapper, ITimeStampSource timeStampSource)
     {
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         ConfigurationSource = configurationSource ?? throw new ArgumentNullException(nameof(configurationSource));
@@ -37,8 +42,9 @@ public class ApplicationEngine
         ActingUserIdentitySource = actingUserIdentitySource ??
                                    throw new ArgumentNullException(nameof(actingUserIdentitySource));
         AuditWrapper = auditWrapper ?? throw new ArgumentNullException(nameof(auditWrapper));
+        TimeStampSource = timeStampSource ?? throw new ArgumentNullException(nameof(timeStampSource));
     }
-    
+
     #endregion
 
     public void Initialize()
@@ -50,14 +56,15 @@ public class ApplicationEngine
                 { UserId = c__SystemAdmin_Builtin_User, FriendlyName = "System Admin User", IsActive = true });
             DataStore.InsertRole(new DbRole()
                 { RoleId = c__SystemAdmin_Builtin_Role, FriendlyName = "System Admin Role" });
-            DataStore.InsertRolePrivilege(new DbRolePrivilege() { PrivilegeId = nameof(EPrivilege.SystemAdmin), RoleId = c__SystemAdmin_Builtin_Role});
+            DataStore.InsertRolePrivilege(
+                new DbRolePrivilege() { PrivilegeId = nameof(EPrivilege.SystemAdmin), RoleId = c__SystemAdmin_Builtin_Role });
             DataStore.PersistUserRole(new DbUserRole()
                 { UserId = c__SystemAdmin_Builtin_User, RoleId = c__SystemAdmin_Builtin_Role });
 
             return true;
         });
     }
-    
+
     #region Private Methods
 
     private void AssertPrivilege(EPrivilege privilegeAsserted)
@@ -66,7 +73,7 @@ public class ApplicationEngine
         Debug.Assert(!string.IsNullOrWhiteSpace(ActingUserIdentitySource.ActingUserId));
 
         var user = DataStore.FetchUser(ActingUserIdentitySource.ActingUserId);
-        if(user == null || !user.IsActive)
+        if (user == null || !user.IsActive)
             throw new ApiAccessDeniedException();
 
         if (ActingUserIdentitySource.ActingUserId == c__SystemAdmin_Builtin_User)
@@ -96,7 +103,7 @@ public class ApplicationEngine
     {
         return methodName;
     }
-    
+
     #endregion
 
     #region Administration
@@ -117,10 +124,12 @@ public class ApplicationEngine
 
                 AssertPrivilege(EPrivilege.SystemAdmin);
 
-                if (DataStore.ExistsUser(user.UserId))
-                    throw new ApiGenericException($"User {user.UserId} already exists");
-
-                DataStore.InsertUser(user);
+                DataStore.TransactionWrap(() =>
+                {
+                    if (DataStore.ExistsUser(user.UserId))
+                        throw new ApiGenericException($"User {user.UserId} already exists");
+                    DataStore.InsertUser(user);
+                });
                 adcc.DetailCallback($"user {user.UserId} IsActive has been set to {user.IsActive}");
             });
     }
@@ -137,14 +146,17 @@ public class ApplicationEngine
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
 
-                var currentRoleMemberships = DataStore.GetUserRoleMemberships(userId);
-                if (currentRoleMemberships.Any())
-                    throw new ApiGenericException($"User {userId} belongs to role(s): [{StringList(currentRoleMemberships)}]");
+                DataStore.TransactionWrap(() =>
+                {
+                    var currentRoleMemberships = DataStore.GetUserRoleMemberships(userId);
+                    if (currentRoleMemberships.Any())
+                        throw new ApiGenericException($"User {userId} belongs to role(s): [{StringList(currentRoleMemberships)}]");
 
-                if (!DataStore.ExistsUser(userId))
-                    throw new ApiGenericException($"User {userId} does not exist");
+                    if (!DataStore.ExistsUser(userId))
+                        throw new ApiGenericException($"User {userId} does not exist");
 
-                DataStore.DeleteUser(userId);
+                    DataStore.DeleteUser(userId);
+                });
             });
     }
 
@@ -164,7 +176,7 @@ public class ApplicationEngine
                 adcc.DetailCallback($"user {user.UserId} IsActive has been set to {user.IsActive}");
             });
     }
-    
+
     public void AddUserIdsToRole(string roleId, IEnumerable<string> userIds)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
@@ -183,6 +195,7 @@ public class ApplicationEngine
                     throw new ApiGenericException($"Role {roleId} does not exist");
 
                 var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+#warning expand transactionwrap see GrantRolePrivilege
                 DataStore.TransactionWrap(() =>
                 {
                     foreach (var userId in userIds)
@@ -209,7 +222,7 @@ public class ApplicationEngine
                     adcc.DetailCallback($"user {newAdmin} has been granted admin via role {roleId}");
             });
     }
-    
+
     public void RemoveUserIdsFromRole(string roleId, IEnumerable<string> userIds)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(roleId);
@@ -228,6 +241,7 @@ public class ApplicationEngine
                     throw new ApiGenericException($"Role {roleId} does not exist");
 
                 var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
+#warning expand transactionwrap
                 DataStore.TransactionWrap(() =>
                 {
                     foreach (var userId in userIds)
@@ -445,7 +459,7 @@ public class ApplicationEngine
     }
 
     #endregion
-    
+
     #region RolePrivilege
 
     public void GrantRolePrivilege(string roleId, EPrivilege privilege)
@@ -469,7 +483,7 @@ public class ApplicationEngine
                         { RoleId = roleId, PrivilegeId = privilege.ToString() });
                     adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
                 });
-                
+
                 Debug.Assert(adminsBefore != null);
                 Debug.Assert(adminsAfter != null);
 
@@ -507,7 +521,7 @@ public class ApplicationEngine
             (adcc) =>
             {
                 AssertPrivilege(EPrivilege.SystemAdmin);
-                
+
                 IEnumerable<string>? adminsBefore = null;
                 IEnumerable<string>? adminsAfter = null;
                 DataStore.TransactionWrap(() =>
@@ -516,7 +530,7 @@ public class ApplicationEngine
                     DataStore.DeleteRolePrivilege(roleId, privilege.ToString());
                     adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
                 });
-                
+
                 Debug.Assert(adminsBefore != null);
                 Debug.Assert(adminsAfter != null);
 
@@ -525,10 +539,113 @@ public class ApplicationEngine
                     adcc.DetailCallback($"user {noLongerAdmin} has been revoked admin via role {roleId}");
             });
     }
-    
+
     #endregion
-    
-    #endregion`
+
+    #endregion
+
+    #region Certificates
+
+    public void CreateRootCertificate(CreateCertificateAuthorityRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Certificates.Certificate.Create,
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
+            $"{ActingUserIdentitySource.ActingUserId} is creating creating root certificate:[{request.SubjectNameElements}]",
+            (adcc) =>
+            {
+                request.Validate();
+                AssertPrivilege(EPrivilege.CertificateAdmin);
+
+                var rightNow = TimeStampSource.UtcNowOffset();
+                var RootDN = new X500DistinguishedName(request.SubjectNameElements.ToString());
+
+                CertificateRequest rootCertRequest;
+                RSA rootRsa;
+                switch (request.AsymmetricKeyType)
+                {
+                    case EAsymmetricKeyType.Rsa4096:
+                        rootRsa = RSA.Create(4096);
+                        rootCertRequest = new CertificateRequest(RootDN, rootRsa, ExtractHashAlgorithmName(request.HashAlgorithm),
+                            RSASignaturePadding.Pkcs1);
+                        break;
+                    case EAsymmetricKeyType.Rsa2048:
+                        rootRsa = RSA.Create(2048);
+                        rootCertRequest = new CertificateRequest(RootDN, rootRsa, ExtractHashAlgorithmName(request.HashAlgorithm),
+                            RSASignaturePadding.Pkcs1);
+                        break;
+                    default:
+                        throw new InvalidOperationException($"unaccounted enum: {request.AsymmetricKeyType}");
+                }
+
+                rootCertRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, request.PathLength, true));
+                rootCertRequest.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(rootCertRequest.PublicKey,
+                    X509SubjectKeyIdentifierHashAlgorithm.Sha1, false));
+                rootCertRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.CrlSign | X509KeyUsageFlags.KeyCertSign,
+                    false));
+
+                var rootcert = rootCertRequest.CreateSelfSigned(rightNow, rightNow.AddYears(request.YearsUntilExpire));
+
+                DataStore.TransactionWrap(() =>
+                {
+                    if (DataStore.ExistsCertificate(request.CertificateId))
+                        throw new ApiGenericException($"Certificate {request.CertificateId} already exists");
+
+                    DataStore.InsertCertificate(new DbCertificate()
+                    {
+                        CertificateId = request.CertificateId,
+                        IsActive =  true,
+                        SerialNumber = 1,
+                        CommonName = request.SubjectNameElements.CommonName,
+                        CountryCode = request.SubjectNameElements.CountryCode,
+                        StateCode = request.SubjectNameElements.StateCode,
+                        Locale =  request.SubjectNameElements.Locale,
+                        Organization = request.SubjectNameElements.Organization,
+                        OrganizationalUnit = request.SubjectNameElements.OrganizationalUnit,
+                        Description = request.Description,
+                    });
+                });
+            });
+    }
+
+    public bool CertificateExists(string certificateId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(certificateId);
+
+        bool returnValue = false;
+        AuditWrapper.Wrap(ActingUserIdentitySource.ActingUserId,
+            ApplicationLocus.Certificates.Certificate.Fetch,
+            $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
+            $"{ActingUserIdentitySource.ActingUserId} is checking existence of certificate:[{certificateId}]",
+            (adcc) =>
+            {
+                AssertPrivilege(EPrivilege.CertificateReader);
+                returnValue = DataStore.ExistsCertificate(certificateId);
+            });
+
+        return returnValue;
+    }
+
+
+    private HashAlgorithmName ExtractHashAlgorithmName(EHashAlgorithm hashAlgorithm)
+    {
+        switch (hashAlgorithm)
+        {
+            case EHashAlgorithm.Md5: return HashAlgorithmName.MD5;
+            case EHashAlgorithm.Sha1: return HashAlgorithmName.SHA1;
+            case EHashAlgorithm.Sha256: return HashAlgorithmName.SHA256;
+            case EHashAlgorithm.Sha384: return HashAlgorithmName.SHA384;
+            case EHashAlgorithm.Sha512: return HashAlgorithmName.SHA512;
+            case EHashAlgorithm.Sha3_256: return HashAlgorithmName.SHA3_256;
+            case EHashAlgorithm.Sha3_384: return HashAlgorithmName.SHA3_384;
+            case EHashAlgorithm.Sha3_512: return HashAlgorithmName.SHA3_512;
+            default: throw new InvalidOperationException($"unaccounted enum: {hashAlgorithm}");
+        }
+    }
+
+    #endregion
 }
 
 // ReSharper restore InconsistentNaming

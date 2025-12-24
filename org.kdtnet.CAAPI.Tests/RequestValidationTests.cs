@@ -24,21 +24,37 @@ public class RequestValidationTests
         var value = Create();
         value.Validate();
 
-        var v2 = Create(); v2.UniqueId = null!;
+        var v2 = Create(); v2.CertificateId = null!;
         Assert.ThrowsException<ValidationException>(() => v2.Validate());
         
         var v3 = Create(); v3.AsymmetricPrivateKeyPassphrase = null!;
         Assert.ThrowsException<ValidationException>(() => v3.Validate());
         return;
+        
+#warning should throw exceptions on invalid SubjectName elements
+#warning should throw exceptions on invalid YearsUntilExpire
 
         CreateCertificateAuthorityRequest Create()
         {
             return new CreateCertificateAuthorityRequest()
             {
-                UniqueId = "TextCa",
-                EAsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
+                CertificateId = "TextCa",
+                Description = "Test Cert Description",
+                SubjectNameElements = new DistinguishedNameElements()
+                {
+                    CommonName = "MyCommonName",
+                    CountryCode = "US",
+                    StateCode = "MT",
+                    Locale = "Helena",
+                    Organization = "MyCompany",
+                    OrganizationalUnit = "MyOrganizationalUnit",
+                },
+                AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
+                HashAlgorithm = EHashAlgorithm.Sha256,
                 AsymmetricPrivateKeyPassphrase = "Test123$",
                 CreateIntermediate = false,
+                YearsUntilExpire = 5,
+                PathLength = 2,
             };
         }
     }

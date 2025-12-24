@@ -53,6 +53,22 @@ public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore, IDisposab
                                                                                         );
                                                                             """;
 
+   protected override string c__Sql_Ddl_CreateTable_Certificate { get; } = """
+                                                                          CREATE TABLE "Certificate" (
+                                                                                     "CertificateId" TEXT NOT NULL,
+                                                                                     "IsActive" INTEGER NOT NULL,
+                                                                                     "SerialNumber" BIGINT NOT NULL,
+                                                                                     "Description" TEXT NOT NULL,
+                                                                                     "CommonName" TEXT NOT NULL,
+                                                                                     "CountryCode" TEXT NOT NULL,
+                                                                                     "StateCode" TEXT NOT NULL,
+                                                                                     "Locale" TEXT NOT NULL,
+                                                                                     "Organization" TEXT NOT NULL,
+                                                                                     "OrganizationalUnit" TEXT NOT NULL,
+                                                                          	        PRIMARY KEY("CertificateId" )
+                                                                                      );
+                                                                          """;
+
     protected override void PreInitDdl()
     {
         EnforceForeignKeys();

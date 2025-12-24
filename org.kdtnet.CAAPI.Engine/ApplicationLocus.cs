@@ -34,5 +34,15 @@ public static class ApplicationLocus
             public static readonly string Fetch =$"{nameof(Administration)}.{nameof(UserRole)}.{nameof(Fetch)}";
         }
     }
+
+    public static class Certificates
+    {
+        //ApplicationLocus.Certificates.Certificate.Create
+        public static class Certificate
+        {
+            public static readonly string Create =$"{nameof(Administration)}.{nameof(Certificate)}.{nameof(Create)}";
+            public static readonly string Fetch =$"{nameof(Administration)}.{nameof(Certificate)}.{nameof(Fetch)}";
+        }
+    }
     
 }

@@ -68,5 +68,11 @@ public interface IDataStore : IDisposable
     void Initialize();
     void Zap();
 
+    #region Certificates
+
+    bool ExistsCertificate(string certificateId);
+    void InsertCertificate(DbCertificate dbCertificate);
+    
+    #endregion
 
 }

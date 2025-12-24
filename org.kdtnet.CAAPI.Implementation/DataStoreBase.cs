@@ -21,7 +21,7 @@ public abstract class DataStoreBase : IDisposable
     protected abstract void PostInitDdl();
     protected abstract bool ExistsTable(string tableName, DbTransaction tx);
     protected abstract string SetIdentifierTicks(string sql);
- 
+
     public void Dispose()
     {
         if (InternalConnection == null)
@@ -62,6 +62,7 @@ public abstract class DataStoreBase : IDisposable
     public void Zap()
     {
         Init();
+        DropTableIfExists("Certificate");
         DropTableIfExists("RolePrivilege");
         DropTableIfExists("UserRole");
         DropTableIfExists("Role");
@@ -78,6 +79,7 @@ public abstract class DataStoreBase : IDisposable
             CreateRoleTableIfNeeded(tx);
             CreateUserRoleTableIfNeeded(tx);
             CreateRolePrivilegeTableIfNeeded(tx);
+            CreateCertificateTableIfNeeded(tx);
 
             tx.Commit();
         }
@@ -88,7 +90,7 @@ public abstract class DataStoreBase : IDisposable
     #region DDL SQL
 
     #region Create Table Statements
-    
+
     protected virtual string c__Sql_Ddl_CreateTable_User { get; } = """
                                                                     CREATE TABLE "User" (
                                                                     	        "UserId"        VARCHAR(100) NOT NULL,
@@ -122,6 +124,22 @@ public abstract class DataStoreBase : IDisposable
                                                                                          );
                                                                              """;
 
+    protected virtual string c__Sql_Ddl_CreateTable_Certificate { get; } = """
+                                                                           CREATE TABLE "Certificate" (
+                                                                                      "CertificateId" VARCHAR(100) NOT NULL,
+                                                                                      "IsActive" INTEGER NOT NULL,
+                                                                                      "SerialNumber" BIGINT NOT NULL,
+                                                                                      "Description" VARCHAR(256) NOT NULL,
+                                                                                      "CommonName" VARCHAR(100) NOT NULL,
+                                                                                      "CountryCode" VARCHAR(100) NOT NULL,
+                                                                                      "StateCode" VARCHAR(100) NOT NULL,
+                                                                                      "Locale" VARCHAR(100) NOT NULL,
+                                                                                      "Organization" VARCHAR(100) NOT NULL,
+                                                                                      "OrganizationalUnit" VARCHAR(100) NOT NULL,
+                                                                           	        PRIMARY KEY("CertificateId" )
+                                                                                       );
+                                                                           """;
+
     #endregion
 
     #endregion
@@ -154,6 +172,11 @@ public abstract class DataStoreBase : IDisposable
     private void CreateRolePrivilegeTableIfNeeded(DbTransaction tx)
     {
         if (!ExistsTable("RolePrivilege", tx)) RunDdl(c__Sql_Ddl_CreateTable_RolePrivilege, tx);
+    }
+
+    private void CreateCertificateTableIfNeeded(DbTransaction tx)
+    {
+        if (!ExistsTable("Certificate", tx)) RunDdl(c__Sql_Ddl_CreateTable_Certificate, tx);
     }
 
     protected void RunDdl(string ddlSql, DbTransaction tx)
@@ -685,6 +708,62 @@ public abstract class DataStoreBase : IDisposable
 
             var count = Convert.ToInt32(cmd.ExecuteScalar());
             return count > 0;
+        }
+    }
+
+    #endregion
+
+    #region Certificates
+
+    public bool ExistsCertificate(string certificateId)
+    {
+        ArgumentNullException.ThrowIfNull(certificateId);
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = """select count(1) from "Certificate" where "CertificateId" = @certificateId""";
+            cmd.CommandText = SetIdentifierTicks(cmd.CommandText);
+            cmd.Parameters.Add(CreateParameter("@certificateId", certificateId));
+
+            cmd.Transaction = CurrentTransaction;
+
+            var count = Convert.ToInt32(cmd.ExecuteScalar());
+            return count > 0;
+        }
+    }
+
+    public void InsertCertificate(DbCertificate dbCertificate)
+    {
+        ArgumentNullException.ThrowIfNull(dbCertificate);
+        dbCertificate.Validate();
+
+        Init();
+
+        using (var cmd = InternalConnection!.CreateCommand())
+        {
+            cmd.CommandText = """
+                              insert into "Certificate"
+                                  ("CertificateId", "IsActive", "SerialNumber", "Description", "CommonName", "CountryCode", "StateCode", "Locale", "Organization", "OrganizationalUnit")
+                              values
+                                  (@CertificateId, @IsActive, @SerialNumber, @Description, @CommonName, @CountryCode, @StateCode, @Locale, @Organization, @OrganizationalUnit)
+                              """;
+            cmd.CommandText = SetIdentifierTicks(cmd.CommandText);
+            cmd.Parameters.Add(CreateParameter("@CertificateId", dbCertificate.CertificateId));
+            cmd.Parameters.Add(CreateParameter("@IsActive", dbCertificate.IsActive ? 1 : 0));
+            cmd.Parameters.Add(CreateParameter("@SerialNumber", dbCertificate.SerialNumber));
+            cmd.Parameters.Add(CreateParameter("@Description", dbCertificate.Description));
+            cmd.Parameters.Add(CreateParameter("@CommonName", dbCertificate.CommonName));
+            cmd.Parameters.Add(CreateParameter("@CountryCode", dbCertificate.CountryCode));
+            cmd.Parameters.Add(CreateParameter("@StateCode", dbCertificate.StateCode));
+            cmd.Parameters.Add(CreateParameter("@Locale", dbCertificate.Locale));
+            cmd.Parameters.Add(CreateParameter("@Organization", dbCertificate.Organization));
+            cmd.Parameters.Add(CreateParameter("@OrganizationalUnit", dbCertificate.OrganizationalUnit));
+
+            cmd.Transaction = CurrentTransaction;
+
+            cmd.ExecuteNonQuery();
         }
     }
 

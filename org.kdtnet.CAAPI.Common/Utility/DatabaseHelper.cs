@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics;
 using org.kdtnet.CAAPI.Common.Abstraction;
 
 namespace org.kdtnet.CAAPI.Common.Utility;
@@ -41,7 +42,29 @@ public static class DatabaseHelper
         return reader.IsDBNull(ordinal) ? throw new DbNullColumnException(columnName) : reader.GetInt32(ordinal);
     }
 
+    public static long GetInt64NotNull(this IDataReader reader, string columnName)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentException.ThrowIfNullOrWhiteSpace(columnName);
+
+        var ordinal = reader.GetOrdinal(columnName);
+
+        return reader.IsDBNull(ordinal) ? throw new DbNullColumnException(columnName) : reader.GetInt64(ordinal);
+    }
+
     public static string GetStringNotNull(this IDataReader reader, string columnName, bool blankOrEmptyIsNull)
+    {
+        var returnValue = GetStringNull(reader, columnName, blankOrEmptyIsNull);
+
+        if(returnValue == null || (blankOrEmptyIsNull && string.IsNullOrWhiteSpace(returnValue)))
+            throw new DbNullColumnException(columnName);
+
+        Debug.Assert(returnValue != null, "returnValue != null");
+        
+        return returnValue;
+    }
+
+    public static string? GetStringNull(this IDataReader reader, string columnName, bool blankOrEmptyIsNull)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentException.ThrowIfNullOrWhiteSpace(columnName);
@@ -49,12 +72,12 @@ public static class DatabaseHelper
         var ordinal = reader.GetOrdinal(columnName);
 
         if (reader.IsDBNull(ordinal))
-            throw new DbNullColumnException(columnName);
+            return null;
 
         var returnValue = reader.GetString(ordinal);
 
-        if(returnValue == null || (blankOrEmptyIsNull && string.IsNullOrWhiteSpace(returnValue)))
-            throw new DbNullColumnException(columnName);
+        if(returnValue == null! || (blankOrEmptyIsNull && string.IsNullOrWhiteSpace(returnValue)))
+            return null;
 
         return returnValue;
     }

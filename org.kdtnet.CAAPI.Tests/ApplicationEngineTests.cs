@@ -7,6 +7,7 @@ using org.kdtnet.CAAPI.Common.Abstraction.Logging;
 using org.kdtnet.CAAPI.Common.Data.Audit;
 using org.kdtnet.CAAPI.Common.Data.Configuration;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
+using org.kdtnet.CAAPI.Common.Data.RestApi;
 using org.kdtnet.CAAPI.Common.Domain.Audit;
 using org.kdtnet.CAAPI.Engine;
 using org.kdtnet.CAAPI.Implementation;
@@ -40,6 +41,7 @@ namespace org.kdtnet.CAAPI.Tests
         private TestingActingUserIdentitySource? TestActingUserIdentitySource { get; set; }
         private TestingAuditLogWriter? TestAuditLogWriter { get; set; }
         private AuditWrapper? TestAuditWrapper { get; set; }
+        private Mock<ITimeStampSource>? MockTimeStampSource { get; set; }
 
         private void SetForMySql()
         {
@@ -150,12 +152,15 @@ namespace org.kdtnet.CAAPI.Tests
             TestActingUserIdentitySource = new TestingActingUserIdentitySource();
             TestAuditLogWriter = new TestingAuditLogWriter();
             TestAuditWrapper = new AuditWrapper(TestAuditLogWriter);
+            MockTimeStampSource = new Mock<ITimeStampSource>();
+            MockTimeStampSource.Setup(tss => tss.UtcNow()).Returns(() => DateTime.UtcNow);
+            MockTimeStampSource.Setup(tss => tss.UtcNowOffset()).Returns(() => DateTimeOffset.UtcNow);
             Debug.WriteLine("test initialized");
         }
 
         private ApplicationEngine CreateDefaultEngine()
         {
-            var returnValue = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!);
+            var returnValue = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object);
             returnValue.Initialize();
 
             return returnValue;
@@ -178,7 +183,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Ctor.HappyPath")]
         public void ConstructEngine()
         {
-            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!);
+            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object);
         }
 
         #endregion
@@ -190,15 +195,17 @@ namespace org.kdtnet.CAAPI.Tests
         public void ConstructEngineWithNulls()
         {
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!));
+                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!));
+                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!, TestActingUserIdentitySource!, TestAuditWrapper!));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, null!, TestAuditWrapper!));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, null!, TestAuditWrapper!, MockTimeStampSource!.Object));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, null!));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, null!, MockTimeStampSource!.Object));
+            Assert.ThrowsException<ArgumentNullException>(() =>
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, TestAuditWrapper!, null!));
         }
 
         #endregion
@@ -211,7 +218,7 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Init.HappyPath")]
         public void InitializeEngine()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!);
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object);
             engine.Initialize();
         }
 
@@ -906,6 +913,47 @@ namespace org.kdtnet.CAAPI.Tests
             TestActingUserIdentitySource!.ActingUserId = null!;
 
             Assert.ThrowsException<InvalidOperationException>(() => engine.CreateRole(testRole));
+        }
+        
+        #endregion
+        
+        #endregion
+        
+        #region Certificate Tests
+        
+        #region Root Certificates
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
+        public void CreateRootCertificate()
+        {
+            var engine = CreateDefaultEngine();
+
+            var newRootCert = new CreateCertificateAuthorityRequest()
+            {
+                CertificateId = "my.rootcert",
+                Description = "Test Cert Description",
+                SubjectNameElements = new DistinguishedNameElements()
+                {
+                    CommonName = "Testing CA Root",
+                    CountryCode = "US",
+                    StateCode = "NY",
+                    Locale = "Utica",
+                    Organization = "Test Organization",
+                    OrganizationalUnit = "Test Organization PKI Division",
+                },
+                AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
+                HashAlgorithm = EHashAlgorithm.Sha256,
+                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                CreateIntermediate = false,
+                YearsUntilExpire = 10,
+                PathLength = 2,
+            };
+            engine.CreateRootCertificate(newRootCert);
+            Assert.IsTrue(engine.CertificateExists(newRootCert.CertificateId));
+            
+            
+            AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
         }
         
         #endregion
