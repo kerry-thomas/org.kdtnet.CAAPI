@@ -1,4 +1,3 @@
-using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Utility;
 
@@ -27,43 +26,4 @@ public class CreateCertificateAuthorityRequest : IValidateable
 
         SubjectNameElements.Validate();
     }
-}
-
-public class DistinguishedNameElements : IValidateable
-{
-    public required string CommonName { get; set; }
-    public string? CountryCode { get; set; }
-    public string? StateCode { get; set; }
-    public string? Locale { get; set; }
-    public string? Organization { get; set; }
-    public string? OrganizationalUnit { get; set; }
-
-    public void Validate()
-    {
-        ValidationHelper.AssertStringNotNull(CommonName, true);
-    }
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-        sb.Append($"cn={CommonName.DistinguishedNameCondition()}");
-        if (CountryCode != null) sb.Append($",c={CountryCode.DistinguishedNameCondition()}");
-        if (StateCode != null) sb.Append($",c={StateCode.DistinguishedNameCondition()}");
-        if (Locale != null) sb.Append($",l={Locale.DistinguishedNameCondition()}");
-        if (Organization != null) sb.Append($",o={Organization.DistinguishedNameCondition()}");
-        if (OrganizationalUnit != null) sb.Append($",ou={OrganizationalUnit.DistinguishedNameCondition()}");
-        return sb.ToString();
-    }
-}
-
-public enum EHashAlgorithm
-{
-    Md5,
-    Sha1,
-    Sha256,
-    Sha384,
-    Sha512,
-    Sha3_256,
-    Sha3_384,
-    Sha3_512,
 }

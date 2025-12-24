@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
+using org.kdtnet.CAAPI.Common.Utility;
 
 namespace org.kdtnet.CAAPI.Implementation;
 
@@ -131,11 +132,11 @@ public abstract class DataStoreBase : IDisposable
                                                                                       "SerialNumber" BIGINT NOT NULL,
                                                                                       "Description" VARCHAR(256) NOT NULL,
                                                                                       "CommonName" VARCHAR(100) NOT NULL,
-                                                                                      "CountryCode" VARCHAR(100) NOT NULL,
-                                                                                      "StateCode" VARCHAR(100) NOT NULL,
-                                                                                      "Locale" VARCHAR(100) NOT NULL,
-                                                                                      "Organization" VARCHAR(100) NOT NULL,
-                                                                                      "OrganizationalUnit" VARCHAR(100) NOT NULL,
+                                                                                      "CountryCode" VARCHAR(100) NULL,
+                                                                                      "StateCode" VARCHAR(100) NULL,
+                                                                                      "Locale" VARCHAR(100) NULL,
+                                                                                      "Organization" VARCHAR(100) NULL,
+                                                                                      "OrganizationalUnit" VARCHAR(100) NULL,
                                                                            	        PRIMARY KEY("CertificateId" )
                                                                                        );
                                                                            """;
@@ -755,11 +756,11 @@ public abstract class DataStoreBase : IDisposable
             cmd.Parameters.Add(CreateParameter("@SerialNumber", dbCertificate.SerialNumber));
             cmd.Parameters.Add(CreateParameter("@Description", dbCertificate.Description));
             cmd.Parameters.Add(CreateParameter("@CommonName", dbCertificate.CommonName));
-            cmd.Parameters.Add(CreateParameter("@CountryCode", dbCertificate.CountryCode));
-            cmd.Parameters.Add(CreateParameter("@StateCode", dbCertificate.StateCode));
-            cmd.Parameters.Add(CreateParameter("@Locale", dbCertificate.Locale));
-            cmd.Parameters.Add(CreateParameter("@Organization", dbCertificate.Organization));
-            cmd.Parameters.Add(CreateParameter("@OrganizationalUnit", dbCertificate.OrganizationalUnit));
+            cmd.Parameters.Add(CreateParameter("@CountryCode", DatabaseHelper.NullDbParam(dbCertificate.CountryCode, true)));
+            cmd.Parameters.Add(CreateParameter("@StateCode", DatabaseHelper.NullDbParam(dbCertificate.StateCode, true)));
+            cmd.Parameters.Add(CreateParameter("@Locale", DatabaseHelper.NullDbParam(dbCertificate.Locale, true)));
+            cmd.Parameters.Add(CreateParameter("@Organization", DatabaseHelper.NullDbParam(dbCertificate.Organization, true)));
+            cmd.Parameters.Add(CreateParameter("@OrganizationalUnit", DatabaseHelper.NullDbParam(dbCertificate.OrganizationalUnit, true)));
 
             cmd.Transaction = CurrentTransaction;
 

@@ -6,6 +6,8 @@ namespace org.kdtnet.CAAPI.Common.Utility;
 
 public static class DatabaseHelper
 {
+    #region DataReader Helpers
+    
     public static Guid GetGuidNotNull(this IDataReader reader, string columnName)
     {
         ArgumentNullException.ThrowIfNull(reader);
@@ -112,4 +114,20 @@ public static class DatabaseHelper
 
         return returnValue;
     }
+    
+    #endregion
+
+    #region Parameter Helpers
+    
+    public static object? NullDbParam(string? value, bool emptyOrBlankIsNull)
+    {
+        if(value == null || (emptyOrBlankIsNull && string.IsNullOrWhiteSpace(value)))
+            return DBNull.Value;
+        return value;
+    }
+    
+    #endregion
+
+
+    
 }

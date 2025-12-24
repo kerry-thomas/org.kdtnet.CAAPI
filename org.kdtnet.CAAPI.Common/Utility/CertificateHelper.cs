@@ -4,11 +4,9 @@ namespace org.kdtnet.CAAPI.Common.Utility;
 
 public static class CertificateHelper
 {
-    public static string DistinguishedNameCondition(this string input)
+    public static string DistinguishedNameCondition(this string? input)
     {
-        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-
-        return input.Replace(",", "\\,");
+        return string.IsNullOrWhiteSpace(input) ? string.Empty : input.Replace(",", "\\,");
     }
 
     public static byte[] CertificateSerialNumberBytes(long serialNumber)

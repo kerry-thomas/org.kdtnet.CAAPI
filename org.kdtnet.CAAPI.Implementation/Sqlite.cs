@@ -60,11 +60,11 @@ public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore, IDisposab
                                                                                      "SerialNumber" BIGINT NOT NULL,
                                                                                      "Description" TEXT NOT NULL,
                                                                                      "CommonName" TEXT NOT NULL,
-                                                                                     "CountryCode" TEXT NOT NULL,
-                                                                                     "StateCode" TEXT NOT NULL,
-                                                                                     "Locale" TEXT NOT NULL,
-                                                                                     "Organization" TEXT NOT NULL,
-                                                                                     "OrganizationalUnit" TEXT NOT NULL,
+                                                                                     "CountryCode" TEXT NULL,
+                                                                                     "StateCode" TEXT NULL,
+                                                                                     "Locale" TEXT NULL,
+                                                                                     "Organization" TEXT NULL,
+                                                                                     "OrganizationalUnit" TEXT NULL,
                                                                           	        PRIMARY KEY("CertificateId" )
                                                                                       );
                                                                           """;

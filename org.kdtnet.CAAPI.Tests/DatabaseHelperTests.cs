@@ -18,6 +18,8 @@ public class DatabaseHelperTests
         MockDataReader = new Mock<IDataReader>();
     }
 
+    #region DataReader Tests
+    
     #region String Tests
 
     #region Happy Path
@@ -197,7 +199,7 @@ public class DatabaseHelperTests
 
     [TestMethod]
     [TestCategory("DatabaseHelper.Int32.HappyPath")]
-    public void GetIntNotNull()
+    public void GetInt32NotNull()
     {
         MockDataReader!.Setup(x => x.Read()).Returns(true);
         MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(false);
@@ -209,7 +211,7 @@ public class DatabaseHelperTests
 
     [TestMethod]
     [TestCategory("DatabaseHelper.Int32.HappyPath")]
-    public void GetIntNotNull_IsDbBull()
+    public void GetInt32NotNull_IsDbBull()
     {
         MockDataReader!.Setup(x => x.Read()).Returns(true);
         MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(true);
@@ -223,7 +225,7 @@ public class DatabaseHelperTests
 
     [TestMethod]
     [TestCategory("DatabaseHelper.Int32.GrumpyPath")]
-    public void GetIntNotNull_BadParams()
+    public void GetInt32NotNull_BadParams()
     {
         var reader = (IDataReader)null!;
 
@@ -237,6 +239,52 @@ public class DatabaseHelperTests
 
     #endregion
 
+    #region Int64 Tests
+
+    #region Happy Path
+
+    [TestMethod]
+    [TestCategory("DatabaseHelper.Int64.HappyPath")]
+    public void GetInt64NotNull()
+    {
+        MockDataReader!.Setup(x => x.Read()).Returns(true);
+        MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(false);
+
+        MockDataReader!.Setup(x => x.GetInt64(It.IsAny<int>())).Returns(5);
+        var v = MockDataReader.Object.GetInt64NotNull("somecolumn");
+        Assert.AreEqual(5, v);
+    }
+
+    [TestMethod]
+    [TestCategory("DatabaseHelper.Int64.HappyPath")]
+    public void GetInt64NotNull_IsDbBull()
+    {
+        MockDataReader!.Setup(x => x.Read()).Returns(true);
+        MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(true);
+
+        Assert.ThrowsException<DbNullColumnException>(() => MockDataReader.Object.GetInt64NotNull("somecolumn"));
+    }
+
+    #endregion
+
+    #region Grumpy Path
+
+    [TestMethod]
+    [TestCategory("DatabaseHelper.Int64.GrumpyPath")]
+    public void GetInt64NotNull_BadParams()
+    {
+        var reader = (IDataReader)null!;
+
+        Assert.ThrowsException<ArgumentNullException>(() => reader.GetInt64NotNull("somecolumn"));
+        Assert.ThrowsException<ArgumentNullException>(() => MockDataReader!.Object.GetInt64NotNull(null!));
+        Assert.ThrowsException<ArgumentException>(() => MockDataReader!.Object.GetInt64NotNull(""));
+        Assert.ThrowsException<ArgumentException>(() => MockDataReader!.Object.GetInt64NotNull(" "));
+    }
+
+    #endregion
+
+    #endregion
+    
     #region Enum Tests
 
     private enum EDbHelperTesting
@@ -368,6 +416,36 @@ public class DatabaseHelperTests
         Assert.ThrowsException<ArgumentNullException>(() => reader.GetList<TestRecord>((rdr) => new TestRecord { StringValue = "xxx",  IntValue = 1, EnumValue = EDbHelperTesting.Value1 }));
         Assert.ThrowsException<ArgumentNullException>(() => MockDataReader!.Object.GetList<TestRecord>(null!));
     }
+    
+    #endregion
+
+    #endregion
+    
+    #endregion
+
+    #region Parameter Tests
+    
+    #region Happy Path
+    
+    [TestMethod]
+    [TestCategory("DatabaseHelper.Parameter.HappyPath")]
+    public void NullDbParam()
+    {
+        Assert.AreEqual("xxx", DatabaseHelper.NullDbParam("xxx", true));
+        Assert.AreEqual("xxx", DatabaseHelper.NullDbParam("xxx", false));
+        
+        Assert.AreEqual(DBNull.Value, DatabaseHelper.NullDbParam(null, true));
+        Assert.AreEqual(DBNull.Value, DatabaseHelper.NullDbParam(null, false));
+        
+        Assert.AreEqual(string.Empty, DatabaseHelper.NullDbParam(string.Empty, false));
+        Assert.AreEqual(" ", DatabaseHelper.NullDbParam(" ", false));
+        Assert.AreEqual(DBNull.Value, DatabaseHelper.NullDbParam(string.Empty, true));
+        Assert.AreEqual(DBNull.Value, DatabaseHelper.NullDbParam(" ", true));
+    }
+    
+    #endregion
+    
+    #region Grumpy Path
     
     #endregion
 

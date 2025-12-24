@@ -633,8 +633,8 @@ public class ApplicationEngine
     {
         switch (hashAlgorithm)
         {
-            case EHashAlgorithm.Md5: return HashAlgorithmName.MD5;
-            case EHashAlgorithm.Sha1: return HashAlgorithmName.SHA1;
+            // case EHashAlgorithm.Md5: return HashAlgorithmName.MD5;
+            // case EHashAlgorithm.Sha1: return HashAlgorithmName.SHA1;
             case EHashAlgorithm.Sha256: return HashAlgorithmName.SHA256;
             case EHashAlgorithm.Sha384: return HashAlgorithmName.SHA384;
             case EHashAlgorithm.Sha512: return HashAlgorithmName.SHA512;

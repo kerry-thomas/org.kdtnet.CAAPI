@@ -925,7 +925,40 @@ namespace org.kdtnet.CAAPI.Tests
         
         [TestMethod]
         [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
-        public void CreateRootCertificate()
+        public void CreateRootCertificate2048()
+        {
+            var engine = CreateDefaultEngine();
+
+            var newRootCert = new CreateCertificateAuthorityRequest()
+            {
+                CertificateId = "my.rootcert",
+                Description = "Test Cert Description",
+                SubjectNameElements = new DistinguishedNameElements()
+                {
+                    CommonName = "Testing CA Root",
+                    CountryCode = "US",
+                    StateCode = "NY",
+                    Locale = "Utica",
+                    Organization = "Test Organization",
+                    OrganizationalUnit = "Test Organization PKI Division",
+                },
+                AsymmetricKeyType = EAsymmetricKeyType.Rsa2048,
+                HashAlgorithm = EHashAlgorithm.Sha256,
+                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                CreateIntermediate = false,
+                YearsUntilExpire = 10,
+                PathLength = 2,
+            };
+            engine.CreateRootCertificate(newRootCert);
+            Assert.IsTrue(engine.CertificateExists(newRootCert.CertificateId));
+            
+            
+            AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
+        public void CreateRootCertificate4096()
         {
             var engine = CreateDefaultEngine();
 
@@ -955,6 +988,147 @@ namespace org.kdtnet.CAAPI.Tests
             
             AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
         }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
+        public void CreateDuplicateRootCertificate()
+        {
+            var engine = CreateDefaultEngine();
+
+            var newRootCert = new CreateCertificateAuthorityRequest()
+            {
+                CertificateId = "my.rootcert",
+                Description = "Test Cert Description",
+                SubjectNameElements = new DistinguishedNameElements()
+                {
+                    CommonName = "Testing CA Root",
+                    CountryCode = "US",
+                    StateCode = "NY",
+                    Locale = "Utica",
+                    Organization = "Test Organization",
+                    OrganizationalUnit = "Test Organization PKI Division",
+                },
+                AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
+                HashAlgorithm = EHashAlgorithm.Sha256,
+                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                CreateIntermediate = false,
+                YearsUntilExpire = 10,
+                PathLength = 2,
+            };
+            engine.CreateRootCertificate(newRootCert);
+            Assert.IsTrue(engine.CertificateExists(newRootCert.CertificateId));
+            Assert.ThrowsException<ApiGenericException>(() => engine.CreateRootCertificate(newRootCert));
+            AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
+        public void CreateRootCertificateVariousHashAlgorithms()
+        {
+            var engine = CreateDefaultEngine();
+
+            CreateCertificateAuthorityRequest makeRequest(string certId, EHashAlgorithm hashAlgorithm)
+            {
+                return new CreateCertificateAuthorityRequest()
+                {
+                    CertificateId = certId,
+                    Description = "Test Cert Description",
+                    SubjectNameElements = new DistinguishedNameElements()
+                    {
+                        CommonName = "Testing CA Root",
+                        CountryCode = "US",
+                        StateCode = "NY",
+                        Locale = "Utica",
+                        Organization = "Test Organization",
+                        OrganizationalUnit = "Test Organization PKI Division",
+                    },
+                    AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
+                    HashAlgorithm = hashAlgorithm,
+                    AsymmetricPrivateKeyPassphrase = "pa$$word",
+                    CreateIntermediate = false,
+                    YearsUntilExpire = 10,
+                    PathLength = 2,
+                };
+            }
+
+           // engine.CreateRootCertificate(makeRequest("cert00", EHashAlgorithm.Md5));
+           // engine.CreateRootCertificate(makeRequest("cert01", EHashAlgorithm.Sha1));
+            engine.CreateRootCertificate(makeRequest("cert02", EHashAlgorithm.Sha256));
+            engine.CreateRootCertificate(makeRequest("cert03", EHashAlgorithm.Sha384));
+            engine.CreateRootCertificate(makeRequest("cert04", EHashAlgorithm.Sha512));
+            engine.CreateRootCertificate(makeRequest("cert05", EHashAlgorithm.Sha3_256));
+            engine.CreateRootCertificate(makeRequest("cert06", EHashAlgorithm.Sha3_384));
+            engine.CreateRootCertificate(makeRequest("cert07", EHashAlgorithm.Sha3_512));
+            Assert.ThrowsException<InvalidOperationException>(() => engine.CreateRootCertificate(makeRequest("cert08", (EHashAlgorithm) 999)));
+        }
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
+        public void CreateRootCertificateWithNullCnElements()
+        {
+            var engine = CreateDefaultEngine();
+
+            var newRootCert = new CreateCertificateAuthorityRequest()
+            {
+                CertificateId = "my.rootcert",
+                Description = "Test Cert Description",
+                SubjectNameElements = new DistinguishedNameElements()
+                {
+                    CommonName = "Testing CA Root",
+                    CountryCode = null,
+                    StateCode = null,
+                    Locale = null,
+                    Organization = null,
+                    OrganizationalUnit = null,
+                },
+                AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
+                HashAlgorithm = EHashAlgorithm.Sha256,
+                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                CreateIntermediate = false,
+                YearsUntilExpire = 10,
+                PathLength = 2,
+            };
+            engine.CreateRootCertificate(newRootCert);
+            Assert.IsTrue(engine.CertificateExists(newRootCert.CertificateId));
+            
+            
+            AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
+        }
+        
+        #region Grumpy Path
+        
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RootCertificates.GrumpyPath")]
+        public void CreateRootCertificateBadEnum()
+        {
+            var engine = CreateDefaultEngine();
+
+            var newRootCert = new CreateCertificateAuthorityRequest()
+            {
+                CertificateId = "my.rootcert",
+                Description = "Test Cert Description",
+                SubjectNameElements = new DistinguishedNameElements()
+                {
+                    CommonName = "Testing CA Root",
+                    CountryCode = "US",
+                    StateCode = "NY",
+                    Locale = "Utica",
+                    Organization = "Test Organization",
+                    OrganizationalUnit = "Test Organization PKI Division",
+                },
+                AsymmetricKeyType = ((EAsymmetricKeyType) 999),
+                HashAlgorithm = EHashAlgorithm.Sha256,
+                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                CreateIntermediate = false,
+                YearsUntilExpire = 10,
+                PathLength = 2,
+            };
+            Assert.ThrowsException<InvalidOperationException>(() => engine.CreateRootCertificate(newRootCert));
+            AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
+        }
+
+        
+        #endregion
         
         #endregion
         
