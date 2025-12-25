@@ -48,6 +48,17 @@ namespace org.kdtnet.CAAPI.Tests
             MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
                 new ApplicationConfiguration()
                 {
+                    Engine = new ApplicationConfigurationEngine()
+                    {
+                        PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                        {
+                            MinLength = 8,
+                            MinUpperCase = 1,
+                            MinLowerCase = 1,
+                            MinDigit = 1,
+                            MinSpecial = 1,
+                        }
+                    },
                     Logging = new ApplicationConfigurationLogging()
                     {
                         Level = ELogLevel.Trace
@@ -67,6 +78,17 @@ namespace org.kdtnet.CAAPI.Tests
             MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
                 new ApplicationConfiguration()
                 {
+                    Engine = new ApplicationConfigurationEngine()
+                    {
+                        PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                        {
+                            MinLength = 8,
+                            MinUpperCase = 1,
+                            MinLowerCase = 1,
+                            MinDigit = 1,
+                            MinSpecial = 1,
+                        }
+                    },
                     Logging = new ApplicationConfigurationLogging()
                     {
                         Level = ELogLevel.Trace
@@ -86,6 +108,17 @@ namespace org.kdtnet.CAAPI.Tests
             MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
                 new ApplicationConfiguration()
                 {
+                    Engine = new ApplicationConfigurationEngine()
+                    {
+                        PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                        {
+                            MinLength = 8,
+                            MinUpperCase = 1,
+                            MinLowerCase = 1,
+                            MinDigit = 1,
+                            MinSpecial = 1,
+                        }
+                    },
                     Logging = new ApplicationConfigurationLogging()
                     {
                         Level = ELogLevel.Trace
@@ -105,6 +138,17 @@ namespace org.kdtnet.CAAPI.Tests
             MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
                 new ApplicationConfiguration()
                 {
+                    Engine = new ApplicationConfigurationEngine()
+                    {
+                        PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                        {
+                            MinLength = 8,
+                            MinUpperCase = 1,
+                            MinLowerCase = 1,
+                            MinDigit = 1,
+                            MinSpecial = 1,
+                        }
+                    },
                     Logging = new ApplicationConfigurationLogging()
                     {
                         Level = ELogLevel.Trace
@@ -124,6 +168,17 @@ namespace org.kdtnet.CAAPI.Tests
             MockConfigurationSource!.Setup(c => c.ConfigObject).Returns(
                 new ApplicationConfiguration()
                 {
+                    Engine = new ApplicationConfigurationEngine()
+                    {
+                        PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                        {
+                            MinLength = 8,
+                            MinUpperCase = 1,
+                            MinLowerCase = 1,
+                            MinDigit = 1,
+                            MinSpecial = 1,
+                        }
+                    },
                     Logging = new ApplicationConfigurationLogging()
                     {
                         Level = ELogLevel.Trace
@@ -925,7 +980,7 @@ namespace org.kdtnet.CAAPI.Tests
         
         [TestMethod]
         [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
-        public void CreateRootCertificate2048()
+        public void CreateRootCertificateRsa2048()
         {
             var engine = CreateDefaultEngine();
 
@@ -944,7 +999,7 @@ namespace org.kdtnet.CAAPI.Tests
                 },
                 AsymmetricKeyType = EAsymmetricKeyType.Rsa2048,
                 HashAlgorithm = EHashAlgorithm.Sha256,
-                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                PrivateKeyPassphrase = "Pa$$word1",
                 CreateIntermediate = false,
                 YearsUntilExpire = 10,
                 PathLength = 2,
@@ -958,7 +1013,7 @@ namespace org.kdtnet.CAAPI.Tests
         
         [TestMethod]
         [TestCategory("ApplicationEngine.RootCertificates.HappyPath")]
-        public void CreateRootCertificate4096()
+        public void CreateRootCertificateRsa4096()
         {
             var engine = CreateDefaultEngine();
 
@@ -977,7 +1032,7 @@ namespace org.kdtnet.CAAPI.Tests
                 },
                 AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
                 HashAlgorithm = EHashAlgorithm.Sha256,
-                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                PrivateKeyPassphrase = "Pa$$word1",
                 CreateIntermediate = false,
                 YearsUntilExpire = 10,
                 PathLength = 2,
@@ -1010,7 +1065,7 @@ namespace org.kdtnet.CAAPI.Tests
                 },
                 AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
                 HashAlgorithm = EHashAlgorithm.Sha256,
-                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                PrivateKeyPassphrase = "Pa$$word1",
                 CreateIntermediate = false,
                 YearsUntilExpire = 10,
                 PathLength = 2,
@@ -1044,7 +1099,7 @@ namespace org.kdtnet.CAAPI.Tests
                     },
                     AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
                     HashAlgorithm = hashAlgorithm,
-                    AsymmetricPrivateKeyPassphrase = "pa$$word",
+                    PrivateKeyPassphrase = "Pa$$word1",
                     CreateIntermediate = false,
                     YearsUntilExpire = 10,
                     PathLength = 2,
@@ -1083,7 +1138,7 @@ namespace org.kdtnet.CAAPI.Tests
                 },
                 AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
                 HashAlgorithm = EHashAlgorithm.Sha256,
-                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                PrivateKeyPassphrase = "Pa$$word1",
                 CreateIntermediate = false,
                 YearsUntilExpire = 10,
                 PathLength = 2,
@@ -1118,7 +1173,7 @@ namespace org.kdtnet.CAAPI.Tests
                 },
                 AsymmetricKeyType = ((EAsymmetricKeyType) 999),
                 HashAlgorithm = EHashAlgorithm.Sha256,
-                AsymmetricPrivateKeyPassphrase = "pa$$word",
+                PrivateKeyPassphrase = "Pa$$word1",
                 CreateIntermediate = false,
                 YearsUntilExpire = 10,
                 PathLength = 2,
@@ -1127,6 +1182,35 @@ namespace org.kdtnet.CAAPI.Tests
             AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
         }
 
+        [TestMethod]
+        [TestCategory("ApplicationEngine.RootCertificates.GrumpyPath")]
+        public void CreateRootCertificateBadPassphrase()
+        {
+            var engine = CreateDefaultEngine();
+
+            var newRootCert = new CreateCertificateAuthorityRequest()
+            {
+                CertificateId = "my.rootcert",
+                Description = "Test Cert Description",
+                SubjectNameElements = new DistinguishedNameElements()
+                {
+                    CommonName = "Testing CA Root",
+                    CountryCode = "US",
+                    StateCode = "NY",
+                    Locale = "Utica",
+                    Organization = "Test Organization",
+                    OrganizationalUnit = "Test Organization PKI Division",
+                },
+                AsymmetricKeyType = ((EAsymmetricKeyType) 999),
+                HashAlgorithm = EHashAlgorithm.Sha256,
+                PrivateKeyPassphrase = "pa$$word",
+                CreateIntermediate = false,
+                YearsUntilExpire = 10,
+                PathLength = 2,
+            };
+            Assert.ThrowsException<ApiBadPassphraseException>(() => engine.CreateRootCertificate(newRootCert));
+            AssertAuditLogExists(ApplicationLocus.Certificates.Certificate.Create);
+        }
         
         #endregion
         

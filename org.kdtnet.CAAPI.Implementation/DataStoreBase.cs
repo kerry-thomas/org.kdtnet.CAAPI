@@ -128,8 +128,11 @@ public abstract class DataStoreBase : IDisposable
     protected virtual string c__Sql_Ddl_CreateTable_Certificate { get; } = """
                                                                            CREATE TABLE "Certificate" (
                                                                                       "CertificateId" VARCHAR(100) NOT NULL,
+                                                                                      "IssuerCertificateId" VARCHAR(100) NULL REFERENCES "Certificate"("CertificateId"),
                                                                                       "IsActive" INTEGER NOT NULL,
                                                                                       "SerialNumber" BIGINT NOT NULL,
+                                                                                      "Subject" VARCHAR(256) NOT NULL,
+                                                                                      "Issuer" VARCHAR(256) NOT NULL,
                                                                                       "Description" VARCHAR(256) NOT NULL,
                                                                                       "CommonName" VARCHAR(100) NOT NULL,
                                                                                       "CountryCode" VARCHAR(100) NULL,
@@ -137,6 +140,7 @@ public abstract class DataStoreBase : IDisposable
                                                                                       "Locale" VARCHAR(100) NULL,
                                                                                       "Organization" VARCHAR(100) NULL,
                                                                                       "OrganizationalUnit" VARCHAR(100) NULL,
+                                                                                      "Pkcs12BinaryWithPrivateKey" BLOB NOT NULL,
                                                                            	        PRIMARY KEY("CertificateId" )
                                                                                        );
                                                                            """;
@@ -746,14 +750,17 @@ public abstract class DataStoreBase : IDisposable
         {
             cmd.CommandText = """
                               insert into "Certificate"
-                                  ("CertificateId", "IsActive", "SerialNumber", "Description", "CommonName", "CountryCode", "StateCode", "Locale", "Organization", "OrganizationalUnit")
+                                  ("CertificateId", IssuerCertificateId, "IsActive", "SerialNumber", "Subject", "Issuer", "Description", "CommonName", "CountryCode", "StateCode", "Locale", "Organization", "OrganizationalUnit", "Pkcs12BinaryWithPrivateKey")
                               values
-                                  (@CertificateId, @IsActive, @SerialNumber, @Description, @CommonName, @CountryCode, @StateCode, @Locale, @Organization, @OrganizationalUnit)
+                                  (@CertificateId, @IssuerCertificateId, @IsActive, @SerialNumber, @Subject, @Issuer, @Description, @CommonName, @CountryCode, @StateCode, @Locale, @Organization, @OrganizationalUnit, @Pkcs12BinaryWithPrivateKey)
                               """;
             cmd.CommandText = SetIdentifierTicks(cmd.CommandText);
             cmd.Parameters.Add(CreateParameter("@CertificateId", dbCertificate.CertificateId));
+            cmd.Parameters.Add(CreateParameter("@IssuerCertificateId", DatabaseHelper.NullDbParam(dbCertificate.IssuerCertificateId, true)));
             cmd.Parameters.Add(CreateParameter("@IsActive", dbCertificate.IsActive ? 1 : 0));
             cmd.Parameters.Add(CreateParameter("@SerialNumber", dbCertificate.SerialNumber));
+            cmd.Parameters.Add(CreateParameter("@Subject", dbCertificate.Subject));
+            cmd.Parameters.Add(CreateParameter("@Issuer", dbCertificate.Issuer));
             cmd.Parameters.Add(CreateParameter("@Description", dbCertificate.Description));
             cmd.Parameters.Add(CreateParameter("@CommonName", dbCertificate.CommonName));
             cmd.Parameters.Add(CreateParameter("@CountryCode", DatabaseHelper.NullDbParam(dbCertificate.CountryCode, true)));
@@ -761,6 +768,7 @@ public abstract class DataStoreBase : IDisposable
             cmd.Parameters.Add(CreateParameter("@Locale", DatabaseHelper.NullDbParam(dbCertificate.Locale, true)));
             cmd.Parameters.Add(CreateParameter("@Organization", DatabaseHelper.NullDbParam(dbCertificate.Organization, true)));
             cmd.Parameters.Add(CreateParameter("@OrganizationalUnit", DatabaseHelper.NullDbParam(dbCertificate.OrganizationalUnit, true)));
+            cmd.Parameters.Add(CreateParameter("@Pkcs12BinaryWithPrivateKey", dbCertificate.Pkcs12BinaryWithPrivateKey));
 
             cmd.Transaction = CurrentTransaction;
 

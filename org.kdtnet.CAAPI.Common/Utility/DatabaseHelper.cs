@@ -54,6 +54,32 @@ public static class DatabaseHelper
         return reader.IsDBNull(ordinal) ? throw new DbNullColumnException(columnName) : reader.GetInt64(ordinal);
     }
 
+    public static byte[] GetBinaryNotNull(this IDataReader reader, string columnName, bool emptyIsNull)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentException.ThrowIfNullOrWhiteSpace(columnName);
+
+        var ordinal = reader.GetOrdinal(columnName);
+
+        if(reader.IsDBNull(ordinal))
+            throw new DbNullColumnException(columnName);
+                
+        var destination = new MemoryStream();
+        var buffer = new byte[8192]; 
+        long offset = 0;
+        long read;
+        while((read = reader.GetBytes(ordinal, offset, buffer, 0, buffer.Length)) > 0) {
+            offset += read;
+            destination.Write(buffer, 0, (int) read); // push downstream
+        }
+        
+        var returnValue = destination.ToArray();
+        if (emptyIsNull && returnValue.Length <= 0)
+            throw new DbNullColumnException(columnName);
+
+        return returnValue;
+    }
+
     public static string GetStringNotNull(this IDataReader reader, string columnName, bool blankOrEmptyIsNull)
     {
         var returnValue = GetStringNull(reader, columnName, blankOrEmptyIsNull);

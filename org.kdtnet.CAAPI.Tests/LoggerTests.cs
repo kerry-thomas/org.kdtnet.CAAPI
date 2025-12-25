@@ -24,6 +24,17 @@ public class LoggerTests
         MockConfigurationSource.Setup(s => s.ConfigObject).Returns(
             new ApplicationConfiguration()
             {
+                Engine = new ApplicationConfigurationEngine()
+                {
+                    PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                    {
+                        MinLength = 8,
+                        MinUpperCase = 1,
+                        MinLowerCase = 1,
+                        MinDigit = 1,
+                        MinSpecial = 1,
+                    }
+                },
                 Logging = new ApplicationConfigurationLogging()
                 {
                     Level = ELogLevel.Info

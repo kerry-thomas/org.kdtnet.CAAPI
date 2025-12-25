@@ -27,7 +27,7 @@ public class RequestValidationTests
         var v2 = Create(); v2.CertificateId = null!;
         Assert.ThrowsException<ValidationException>(() => v2.Validate());
         
-        var v3 = Create(); v3.AsymmetricPrivateKeyPassphrase = null!;
+        var v3 = Create(); v3.PrivateKeyPassphrase = null!;
         Assert.ThrowsException<ValidationException>(() => v3.Validate());
         return;
         
@@ -51,7 +51,7 @@ public class RequestValidationTests
                 },
                 AsymmetricKeyType = EAsymmetricKeyType.Rsa4096,
                 HashAlgorithm = EHashAlgorithm.Sha256,
-                AsymmetricPrivateKeyPassphrase = "Test123$",
+                PrivateKeyPassphrase = "Test123$",
                 CreateIntermediate = false,
                 YearsUntilExpire = 5,
                 PathLength = 2,

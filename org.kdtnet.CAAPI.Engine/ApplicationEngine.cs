@@ -8,6 +8,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Abstraction.Logging;
+using org.kdtnet.CAAPI.Common.Data.Configuration;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
 using org.kdtnet.CAAPI.Common.Data.RestApi;
 using org.kdtnet.CAAPI.Common.Domain.Audit;
@@ -194,10 +195,12 @@ public class ApplicationEngine
                 if (!DataStore.ExistsRole(roleId))
                     throw new ApiGenericException($"Role {roleId} does not exist");
 
-                var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
-#warning expand transactionwrap see GrantRolePrivilege
+                IEnumerable<string>? adminsBefore = null;
+                IEnumerable<string>? adminsAfter = null;
+
                 DataStore.TransactionWrap(() =>
                 {
+                    adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
                     foreach (var userId in userIds)
                     {
                         if (string.IsNullOrWhiteSpace(userId))
@@ -213,10 +216,12 @@ public class ApplicationEngine
                         DataStore.PersistUserRole(newUserRole);
                     }
 
-                    return true;
+                    adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
                 });
-                var adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
 
+                Debug.Assert(adminsBefore != null);
+                Debug.Assert(adminsAfter != null);
+                
                 var newAdmins = adminsAfter.Except(adminsBefore);
                 foreach (var newAdmin in newAdmins)
                     adcc.DetailCallback($"user {newAdmin} has been granted admin via role {roleId}");
@@ -240,10 +245,12 @@ public class ApplicationEngine
                 if (!DataStore.ExistsRole(roleId))
                     throw new ApiGenericException($"Role {roleId} does not exist");
 
-                var adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
-#warning expand transactionwrap
+                IEnumerable<string>? adminsBefore = null;
+                IEnumerable<string>? adminsAfter = null;
+
                 DataStore.TransactionWrap(() =>
                 {
+                    adminsBefore = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
                     foreach (var userId in userIds)
                     {
                         if (string.IsNullOrWhiteSpace(userId))
@@ -259,10 +266,12 @@ public class ApplicationEngine
                         DataStore.DeleteUserRole(userId, roleId);
                     }
 
-                    return true;
+                    adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
                 });
-                var adminsAfter = DataStore.AllUserIdsWithPrivilege(nameof(EPrivilege.SystemAdmin));
 
+                Debug.Assert(adminsBefore != null);
+                Debug.Assert(adminsAfter != null);
+                
                 var noLongerAdmins = adminsBefore.Except(adminsAfter);
                 foreach (var noLongerAdmin in noLongerAdmins)
                     adcc.DetailCallback($"user {noLongerAdmin} has been revoked admin via role {roleId}");
@@ -554,9 +563,10 @@ public class ApplicationEngine
             ApplicationLocus.Certificates.Certificate.Create,
             $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is creating creating root certificate:[{request.SubjectNameElements}]",
-            (adcc) =>
+            (_) =>
             {
                 request.Validate();
+                GenericHelper.AssertValidPassphrase(request.PrivateKeyPassphrase, ConfigurationSource.ConfigObject.Engine.PassphraseMandates);
                 AssertPrivilege(EPrivilege.CertificateAdmin);
 
                 var rightNow = TimeStampSource.UtcNowOffset();
@@ -586,8 +596,9 @@ public class ApplicationEngine
                 rootCertRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.CrlSign | X509KeyUsageFlags.KeyCertSign,
                     false));
 
-                var rootcert = rootCertRequest.CreateSelfSigned(rightNow, rightNow.AddYears(request.YearsUntilExpire));
-
+                var rootCert = rootCertRequest.CreateSelfSigned(rightNow, rightNow.AddYears(request.YearsUntilExpire));
+                var rootCertPkcs12Bytes = rootCert.Export(X509ContentType.Pfx, request.PrivateKeyPassphrase);
+                
                 DataStore.TransactionWrap(() =>
                 {
                     if (DataStore.ExistsCertificate(request.CertificateId))
@@ -596,8 +607,11 @@ public class ApplicationEngine
                     DataStore.InsertCertificate(new DbCertificate()
                     {
                         CertificateId = request.CertificateId,
+                        IssuerCertificateId = null,
                         IsActive =  true,
                         SerialNumber = 1,
+                        Subject = rootCert.Subject,
+                        Issuer = rootCert.Issuer,
                         CommonName = request.SubjectNameElements.CommonName,
                         CountryCode = request.SubjectNameElements.CountryCode,
                         StateCode = request.SubjectNameElements.StateCode,
@@ -605,6 +619,7 @@ public class ApplicationEngine
                         Organization = request.SubjectNameElements.Organization,
                         OrganizationalUnit = request.SubjectNameElements.OrganizationalUnit,
                         Description = request.Description,
+                        Pkcs12BinaryWithPrivateKey = rootCertPkcs12Bytes,
                     });
                 });
             });
@@ -619,7 +634,7 @@ public class ApplicationEngine
             ApplicationLocus.Certificates.Certificate.Fetch,
             $"{ActingUserIdentitySource.ActingUserId}:{GetCurrentMethodName()}",
             $"{ActingUserIdentitySource.ActingUserId} is checking existence of certificate:[{certificateId}]",
-            (adcc) =>
+            (_) =>
             {
                 AssertPrivilege(EPrivilege.CertificateReader);
                 returnValue = DataStore.ExistsCertificate(certificateId);

@@ -34,6 +34,20 @@ public class ApiAccessDeniedException : ApiDisplayableException
     }
 }
 
+
+public class ApiBadPassphraseException : ApiDisplayableException
+{
+    public ApiBadPassphraseException(string message, Exception? innerException)
+        : base(message, innerException)
+    {
+    }
+
+    public ApiBadPassphraseException(string message)
+        : this(message, null)
+    {
+    }
+}
+
 public class ValidationException : ApiDisplayableException
 {
     public ValidationException(string message, Exception? innerException)

@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 
 namespace org.kdtnet.CAAPI.Implementation;
 
-public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore, IDisposable
+public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore
 {
     protected abstract string GetConnectionString();
     
@@ -19,55 +19,6 @@ public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore, IDisposab
     {
         return new SqliteParameter(parameterName, parameterValue);
     }
-    
-     protected override string c__Sql_Ddl_CreateTable_User { get; }= """
-                                                                CREATE TABLE "User" (
-                                                                	        "UserId"        TEXT NOT NULL,
-                                                                	        "FriendlyName"  TEXT NOT NULL,
-                                                                	        "IsActive"      INTEGER NOT NULL,
-                                                                	        PRIMARY KEY("UserId")
-                                                                                )  
-                                                                """;
-
-   protected override string c__Sql_Ddl_CreateTable_Role { get; }= """
-                                                                   CREATE TABLE "Role" (
-                                                                   	        "RoleId"       TEXT NOT NULL,
-                                                                   	        "FriendlyName" TEXT NOT NULL,
-                                                                   	        PRIMARY KEY("RoleId") 
-                                                                               );
-                                                                   """;
-
-   protected override string c__Sql_Ddl_CreateTable_UserRole { get; } = """
-                                                                        CREATE TABLE "UserRole" (
-                                                                        	        "UserId" TEXT NOT NULL REFERENCES "User"("UserId"),
-                                                                        	        "RoleId" TEXT NOT NULL REFERENCES "Role"("RoleId"),
-                                                                        	        PRIMARY KEY("UserId","RoleId" )
-                                                                                    );
-                                                                        """;
-
-   protected override string c__Sql_Ddl_CreateTable_RolePrivilege { get; }= """
-                                                                            CREATE TABLE "RolePrivilege" (
-                                                                            	        "RoleId"      TEXT NOT NULL REFERENCES "Role"("RoleId"),
-                                                                            	        "PrivilegeId" TEXT NOT NULL,
-                                                                            	        PRIMARY KEY("RoleId","PrivilegeId" )
-                                                                                        );
-                                                                            """;
-
-   protected override string c__Sql_Ddl_CreateTable_Certificate { get; } = """
-                                                                          CREATE TABLE "Certificate" (
-                                                                                     "CertificateId" TEXT NOT NULL,
-                                                                                     "IsActive" INTEGER NOT NULL,
-                                                                                     "SerialNumber" BIGINT NOT NULL,
-                                                                                     "Description" TEXT NOT NULL,
-                                                                                     "CommonName" TEXT NOT NULL,
-                                                                                     "CountryCode" TEXT NULL,
-                                                                                     "StateCode" TEXT NULL,
-                                                                                     "Locale" TEXT NULL,
-                                                                                     "Organization" TEXT NULL,
-                                                                                     "OrganizationalUnit" TEXT NULL,
-                                                                          	        PRIMARY KEY("CertificateId" )
-                                                                                      );
-                                                                          """;
 
     protected override void PreInitDdl()
     {
@@ -99,12 +50,12 @@ public abstract class SqliteDataStoreBase : DataStoreBase, IDataStore, IDisposab
 }
 
 
-public class SqliteInMemoryDataStore : SqliteDataStoreBase, IDataStore, IDisposable
+public class SqliteInMemoryDataStore : SqliteDataStoreBase
 {
     protected override string GetConnectionString() => "Data Source=:memory:";
 }
 
-public class SqlitePhysicalDataStore : SqliteDataStoreBase, IDataStore, IDisposable
+public class SqlitePhysicalDataStore : SqliteDataStoreBase
 {
     private IConfigurationSource ConfigurationSource { get; }
 

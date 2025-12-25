@@ -10,7 +10,7 @@ public class CreateCertificateAuthorityRequest : IValidateable
     public required DistinguishedNameElements SubjectNameElements { get; set; }
     public required EAsymmetricKeyType AsymmetricKeyType { get; set; }
     public required EHashAlgorithm HashAlgorithm { get; set; }
-    public required string AsymmetricPrivateKeyPassphrase { get; set; } 
+    public required string PrivateKeyPassphrase { get; set; } 
     public required bool CreateIntermediate { get; set; }
     public required int YearsUntilExpire { get; set; }
     public required int PathLength { get; set; }
@@ -20,7 +20,7 @@ public class CreateCertificateAuthorityRequest : IValidateable
         ValidationHelper.AssertStringNotNull(CertificateId, true);
         ValidationHelper.AssertStringNotNull(Description, true);
         ValidationHelper.AssertObjectNotNull(SubjectNameElements);
-        ValidationHelper.AssertStringNotNull(AsymmetricPrivateKeyPassphrase, true);
+        ValidationHelper.AssertStringNotNull(PrivateKeyPassphrase, true);
         ValidationHelper.AssertCondition(() => YearsUntilExpire > 0, "must be greater than 0", nameof(YearsUntilExpire));
         ValidationHelper.AssertCondition(() => PathLength > 0, "must be greater than 0", nameof(PathLength));
 

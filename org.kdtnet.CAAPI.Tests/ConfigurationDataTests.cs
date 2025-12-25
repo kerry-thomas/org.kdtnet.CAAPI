@@ -19,6 +19,17 @@ public class ConfigurationDataTests
     {
         var cfg = new ApplicationConfiguration()
         {
+            Engine = new ApplicationConfigurationEngine()
+            {
+                PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                {
+                    MinLength = 8,
+                    MinUpperCase = 1,
+                    MinLowerCase = 1,
+                    MinDigit = 1,
+                    MinSpecial = 1,
+                }
+            },
             Logging = new ApplicationConfigurationLogging()
             {
                 Level = ELogLevel.Info,
@@ -49,6 +60,17 @@ public class ConfigurationDataTests
     {
         var cfg = new ApplicationConfiguration()
         {
+            Engine = new ApplicationConfigurationEngine()
+            {
+                PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                {
+                    MinLength = 8,
+                    MinUpperCase = 1,
+                    MinLowerCase = 1,
+                    MinDigit = 1,
+                    MinSpecial = 1,
+                }
+            },
             Logging = new ApplicationConfigurationLogging()
             {
                 Level = ELogLevel.Info,
@@ -72,6 +94,17 @@ public class ConfigurationDataTests
     {
         var cfg1 = new ApplicationConfiguration()
         {
+            Engine = new ApplicationConfigurationEngine()
+            {
+                PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                {
+                    MinLength = 8,
+                    MinUpperCase = 1,
+                    MinLowerCase = 1,
+                    MinDigit = 1,
+                    MinSpecial = 1,
+                }
+            },
             Logging = null!,
             DataStore = new ApplicationConfigurationDataStore()
             {
@@ -83,11 +116,35 @@ public class ConfigurationDataTests
         
         var cfg2 = new ApplicationConfiguration()
         {
+            Engine = new ApplicationConfigurationEngine()
+            {
+                PassphraseMandates = new ApplicationConfigurationEnginePassphraseMandates()
+                {
+                    MinLength = 8,
+                    MinUpperCase = 1,
+                    MinLowerCase = 1,
+                    MinDigit = 1,
+                    MinSpecial = 1,
+                }
+            },
             Logging = new ApplicationConfigurationLogging()
                 { Level =  ELogLevel.Info },
             DataStore = null!
         };
         Assert.ThrowsException<ValidationException>(() => cfg2.Validate());
+        
+        var cfg3 = new ApplicationConfiguration()
+        {
+            Engine = null!,
+            Logging = new ApplicationConfigurationLogging()
+                { Level =  ELogLevel.Info },
+            DataStore = new ApplicationConfigurationDataStore()
+            {
+                ConnectionString = "test",
+                TableSchema =  "test_schema",
+            }
+        };
+        Assert.ThrowsException<ValidationException>(() => cfg3.Validate());
     }
 
     #endregion
