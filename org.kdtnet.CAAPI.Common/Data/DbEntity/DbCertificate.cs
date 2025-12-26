@@ -10,6 +10,7 @@ public class DbCertificate: IValidateable
     public string? IssuerCertificateId { get; set; }
     public required bool IsActive { get; set; }
     public required long SerialNumber { get; set; }
+    public required string ThumbPrint { get; set; }
     public required string Subject { get; set; }
     public required string Issuer { get; set; }
     public required string Description { get; set; }
@@ -27,6 +28,7 @@ public class DbCertificate: IValidateable
         ValidationHelper.AssertCondition(() => SerialNumber > 0, "must be greater than zero", nameof(SerialNumber));
         ValidationHelper.AssertStringNotNull(Description, true);
         ValidationHelper.AssertStringNotNull(CommonName, true);
+        ValidationHelper.AssertStringNotNull(ThumbPrint, true);
         ValidationHelper.AssertObjectNotNull(Pkcs12BinaryWithPrivateKey);
         ValidationHelper.AssertCondition(() => Pkcs12BinaryWithPrivateKey.Length > 0, "binary length must be greater than zero", nameof(Pkcs12BinaryWithPrivateKey));
     }
@@ -39,6 +41,7 @@ public class DbCertificate: IValidateable
             IssuerCertificateId = reader.GetStringNotNull(nameof(IssuerCertificateId),  true),
             IsActive = reader.GetBoolNotNull(nameof(IsActive)),
             SerialNumber = reader.GetInt64NotNull(nameof(SerialNumber)),
+            ThumbPrint = reader.GetStringNotNull(nameof(ThumbPrint), true),
             Subject = reader.GetStringNotNull(nameof(Subject), true),
             Issuer = reader.GetStringNotNull(nameof(Issuer), true),
             Description = reader.GetStringNotNull(nameof(Description), true),

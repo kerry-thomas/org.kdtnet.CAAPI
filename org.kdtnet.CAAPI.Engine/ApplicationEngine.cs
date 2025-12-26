@@ -617,6 +617,7 @@ public class ApplicationEngine
                         IssuerCertificateId = null,
                         IsActive =  true,
                         SerialNumber = MakeRandomCertificateSerialNumber(),
+                        ThumbPrint = rootCert.Thumbprint,
                         Subject = rootCert.Subject,
                         Issuer = rootCert.Issuer,
                         CommonName = request.SubjectNameElements.CommonName,

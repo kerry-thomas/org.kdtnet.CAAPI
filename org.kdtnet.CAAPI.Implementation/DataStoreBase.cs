@@ -131,6 +131,7 @@ public abstract class DataStoreBase : IDisposable
                                                                                       "IssuerCertificateId" VARCHAR(100) NULL REFERENCES "Certificate"("CertificateId"),
                                                                                       "IsActive" INTEGER NOT NULL,
                                                                                       "SerialNumber" BIGINT NOT NULL,
+                                                                                      "ThumbPrint" VARCHAR(256) NOT NULL,
                                                                                       "Subject" VARCHAR(256) NOT NULL,
                                                                                       "Issuer" VARCHAR(256) NOT NULL,
                                                                                       "Description" VARCHAR(256) NOT NULL,
@@ -750,15 +751,16 @@ public abstract class DataStoreBase : IDisposable
         {
             cmd.CommandText = """
                               insert into "Certificate"
-                                  ("CertificateId", IssuerCertificateId, "IsActive", "SerialNumber", "Subject", "Issuer", "Description", "CommonName", "CountryCode", "StateCode", "Locale", "Organization", "OrganizationalUnit", "Pkcs12BinaryWithPrivateKey")
+                                  ("CertificateId", IssuerCertificateId, "IsActive", "SerialNumber", "ThumbPrint", "Subject", "Issuer", "Description", "CommonName", "CountryCode", "StateCode", "Locale", "Organization", "OrganizationalUnit", "Pkcs12BinaryWithPrivateKey")
                               values
-                                  (@CertificateId, @IssuerCertificateId, @IsActive, @SerialNumber, @Subject, @Issuer, @Description, @CommonName, @CountryCode, @StateCode, @Locale, @Organization, @OrganizationalUnit, @Pkcs12BinaryWithPrivateKey)
+                                  (@CertificateId, @IssuerCertificateId, @IsActive, @SerialNumber, @ThumbPrint, @Subject, @Issuer, @Description, @CommonName, @CountryCode, @StateCode, @Locale, @Organization, @OrganizationalUnit, @Pkcs12BinaryWithPrivateKey)
                               """;
             cmd.CommandText = SetIdentifierTicks(cmd.CommandText);
             cmd.Parameters.Add(CreateParameter("@CertificateId", dbCertificate.CertificateId));
             cmd.Parameters.Add(CreateParameter("@IssuerCertificateId", DatabaseHelper.NullDbParam(dbCertificate.IssuerCertificateId, true)));
             cmd.Parameters.Add(CreateParameter("@IsActive", dbCertificate.IsActive ? 1 : 0));
             cmd.Parameters.Add(CreateParameter("@SerialNumber", dbCertificate.SerialNumber));
+            cmd.Parameters.Add(CreateParameter("@ThumbPrint", dbCertificate.ThumbPrint));
             cmd.Parameters.Add(CreateParameter("@Subject", dbCertificate.Subject));
             cmd.Parameters.Add(CreateParameter("@Issuer", dbCertificate.Issuer));
             cmd.Parameters.Add(CreateParameter("@Description", dbCertificate.Description));
