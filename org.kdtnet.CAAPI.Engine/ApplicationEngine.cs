@@ -8,7 +8,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using org.kdtnet.CAAPI.Common.Abstraction;
 using org.kdtnet.CAAPI.Common.Abstraction.Logging;
-using org.kdtnet.CAAPI.Common.Data.Configuration;
 using org.kdtnet.CAAPI.Common.Data.DbEntity;
 using org.kdtnet.CAAPI.Common.Data.RestApi;
 using org.kdtnet.CAAPI.Common.Domain.Audit;
@@ -573,23 +572,29 @@ public class ApplicationEngine
                 var RootDN = new X500DistinguishedName(request.SubjectNameElements.ToString());
 
                 CertificateRequest rootCertRequest;
-                RSA rootRsa;
                 switch (request.AsymmetricKeyType)
                 {
                     case EAsymmetricKeyType.Rsa4096:
-                        rootRsa = RSA.Create(4096);
-                        rootCertRequest = new CertificateRequest(RootDN, rootRsa, ExtractHashAlgorithmName(request.HashAlgorithm),
+                        rootCertRequest = new CertificateRequest(RootDN, RSA.Create(4096), ExtractHashAlgorithmName(request.HashAlgorithm),
                             RSASignaturePadding.Pkcs1);
                         break;
                     case EAsymmetricKeyType.Rsa2048:
-                        rootRsa = RSA.Create(2048);
-                        rootCertRequest = new CertificateRequest(RootDN, rootRsa, ExtractHashAlgorithmName(request.HashAlgorithm),
+                        rootCertRequest = new CertificateRequest(RootDN, RSA.Create(2048), ExtractHashAlgorithmName(request.HashAlgorithm),
                             RSASignaturePadding.Pkcs1);
+                        break;
+                    case EAsymmetricKeyType.NistP256:
+                        rootCertRequest = new CertificateRequest(RootDN, ECDsa.Create(ECCurve.NamedCurves.nistP256), ExtractHashAlgorithmName(request.HashAlgorithm));
+                        break;
+                    case EAsymmetricKeyType.NistP384:
+                        rootCertRequest = new CertificateRequest(RootDN, ECDsa.Create(ECCurve.NamedCurves.nistP384), ExtractHashAlgorithmName(request.HashAlgorithm));
+                        break;
+                    case EAsymmetricKeyType.NistP521:
+                        rootCertRequest = new CertificateRequest(RootDN, ECDsa.Create(ECCurve.NamedCurves.nistP521), ExtractHashAlgorithmName(request.HashAlgorithm));
                         break;
                     default:
                         throw new InvalidOperationException($"unaccounted enum: {request.AsymmetricKeyType}");
                 }
-
+                
                 rootCertRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, request.PathLength, true));
                 rootCertRequest.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(rootCertRequest.PublicKey,
                     X509SubjectKeyIdentifierHashAlgorithm.Sha1, false));
@@ -598,7 +603,7 @@ public class ApplicationEngine
 
                 var rootCert = rootCertRequest.CreateSelfSigned(rightNow, rightNow.AddYears(request.YearsUntilExpire));
                 var rootCertPkcs12Bytes = rootCert.Export(X509ContentType.Pfx, request.PrivateKeyPassphrase);
-                
+               
                 DataStore.TransactionWrap(() =>
                 {
                     if (DataStore.ExistsCertificate(request.CertificateId))
