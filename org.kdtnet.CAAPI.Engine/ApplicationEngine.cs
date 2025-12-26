@@ -28,6 +28,7 @@ public class ApplicationEngine
     private IActingUserIdentitySource ActingUserIdentitySource { get; }
     private AuditWrapper AuditWrapper { get; }
     private ITimeStampSource TimeStampSource { get; }
+    private RandomNumberGenerator SecureRandomNumberGenerator { get; }
 
     #endregion
 
@@ -43,6 +44,7 @@ public class ApplicationEngine
                                    throw new ArgumentNullException(nameof(actingUserIdentitySource));
         AuditWrapper = auditWrapper ?? throw new ArgumentNullException(nameof(auditWrapper));
         TimeStampSource = timeStampSource ?? throw new ArgumentNullException(nameof(timeStampSource));
+        SecureRandomNumberGenerator = RandomNumberGenerator.Create();
     }
 
     #endregion
@@ -614,7 +616,7 @@ public class ApplicationEngine
                         CertificateId = request.CertificateId,
                         IssuerCertificateId = null,
                         IsActive =  true,
-                        SerialNumber = 1,
+                        SerialNumber = MakeRandomCertificateSerialNumber(),
                         Subject = rootCert.Subject,
                         Issuer = rootCert.Issuer,
                         CommonName = request.SubjectNameElements.CommonName,
@@ -649,7 +651,7 @@ public class ApplicationEngine
     }
 
 
-    private HashAlgorithmName ExtractHashAlgorithmName(EHashAlgorithm hashAlgorithm)
+    private static HashAlgorithmName ExtractHashAlgorithmName(EHashAlgorithm hashAlgorithm)
     {
         switch (hashAlgorithm)
         {
@@ -663,6 +665,15 @@ public class ApplicationEngine
             case EHashAlgorithm.Sha3_512: return HashAlgorithmName.SHA3_512;
             default: throw new InvalidOperationException($"unaccounted enum: {hashAlgorithm}");
         }
+    }
+
+    private long MakeRandomCertificateSerialNumber()
+    {
+        var buffer = new byte[8];
+        SecureRandomNumberGenerator.GetBytes(buffer);
+        var returnValue = BitConverter.ToInt64(buffer, 0) & 0x7FFFFFFFFFFFFFFF;
+        Debug.Assert(returnValue > 0);
+        return returnValue;
     }
 
     #endregion
