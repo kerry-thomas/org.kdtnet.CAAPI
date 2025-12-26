@@ -42,6 +42,7 @@ namespace org.kdtnet.CAAPI.Tests
         private TestingAuditLogWriter? TestAuditLogWriter { get; set; }
         private AuditWrapper? TestAuditWrapper { get; set; }
         private Mock<ITimeStampSource>? MockTimeStampSource { get; set; }
+        private IRandomSource TestRandomSource = new DefaultRandomSource();
 
         private void SetForMySql()
         {
@@ -215,7 +216,8 @@ namespace org.kdtnet.CAAPI.Tests
 
         private ApplicationEngine CreateDefaultEngine()
         {
-            var returnValue = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object);
+            var returnValue = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,
+                TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object, TestRandomSource);
             returnValue.Initialize();
 
             return returnValue;
@@ -238,7 +240,8 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Ctor.HappyPath")]
         public void ConstructEngine()
         {
-            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object);
+            _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, 
+                TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object, TestRandomSource);
         }
 
         #endregion
@@ -250,17 +253,19 @@ namespace org.kdtnet.CAAPI.Tests
         public void ConstructEngineWithNulls()
         {
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object));
+                _ = new ApplicationEngine(null!, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object, TestRandomSource));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object));
+                _ = new ApplicationEngine(MockLogger!.Object, null!, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object, TestRandomSource));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, null!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object, TestRandomSource));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, null!, TestAuditWrapper!, MockTimeStampSource!.Object));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, null!, TestAuditWrapper!, MockTimeStampSource!.Object, TestRandomSource));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, null!, MockTimeStampSource!.Object));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, null!, MockTimeStampSource!.Object, TestRandomSource));
             Assert.ThrowsException<ArgumentNullException>(() =>
-                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, TestAuditWrapper!, null!));
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, TestAuditWrapper!, null!, TestRandomSource));
+            Assert.ThrowsException<ArgumentNullException>(() =>
+                _ = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,  TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object, null!));
         }
 
         #endregion
@@ -273,7 +278,8 @@ namespace org.kdtnet.CAAPI.Tests
         [TestCategory("ApplicationEngine.Init.HappyPath")]
         public void InitializeEngine()
         {
-            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!, TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object);
+            var engine = new ApplicationEngine(MockLogger!.Object, MockConfigurationSource!.Object, TestDataStore!,
+                TestActingUserIdentitySource!, TestAuditWrapper!, MockTimeStampSource!.Object, TestRandomSource);
             engine.Initialize();
         }
 

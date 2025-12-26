@@ -28,14 +28,15 @@ public class ApplicationEngine
     private IActingUserIdentitySource ActingUserIdentitySource { get; }
     private AuditWrapper AuditWrapper { get; }
     private ITimeStampSource TimeStampSource { get; }
-    private RandomNumberGenerator SecureRandomNumberGenerator { get; }
+    private IRandomSource RandomSource { get; }
 
     #endregion
 
     #region Constructor
 
     public ApplicationEngine(ILogger logger, IConfigurationSource configurationSource, IDataStore dataStore,
-        IActingUserIdentitySource actingUserIdentitySource, AuditWrapper auditWrapper, ITimeStampSource timeStampSource)
+        IActingUserIdentitySource actingUserIdentitySource, AuditWrapper auditWrapper, ITimeStampSource timeStampSource,
+        IRandomSource randomSource)
     {
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         ConfigurationSource = configurationSource ?? throw new ArgumentNullException(nameof(configurationSource));
@@ -44,7 +45,7 @@ public class ApplicationEngine
                                    throw new ArgumentNullException(nameof(actingUserIdentitySource));
         AuditWrapper = auditWrapper ?? throw new ArgumentNullException(nameof(auditWrapper));
         TimeStampSource = timeStampSource ?? throw new ArgumentNullException(nameof(timeStampSource));
-        SecureRandomNumberGenerator = RandomNumberGenerator.Create();
+        RandomSource = randomSource ?? throw new ArgumentNullException(nameof(randomSource));
     }
 
     #endregion
@@ -616,7 +617,7 @@ public class ApplicationEngine
                         CertificateId = request.CertificateId,
                         IssuerCertificateId = null,
                         IsActive =  true,
-                        SerialNumber = MakeRandomCertificateSerialNumber(),
+                        SerialNumber = RandomSource.GetInt64(),
                         ThumbPrint = rootCert.Thumbprint,
                         Subject = rootCert.Subject,
                         Issuer = rootCert.Issuer,
@@ -666,15 +667,6 @@ public class ApplicationEngine
             case EHashAlgorithm.Sha3_512: return HashAlgorithmName.SHA3_512;
             default: throw new InvalidOperationException($"unaccounted enum: {hashAlgorithm}");
         }
-    }
-
-    private long MakeRandomCertificateSerialNumber()
-    {
-        var buffer = new byte[8];
-        SecureRandomNumberGenerator.GetBytes(buffer);
-        var returnValue = BitConverter.ToInt64(buffer, 0) & 0x7FFFFFFFFFFFFFFF;
-        Debug.Assert(returnValue > 0);
-        return returnValue;
     }
 
     #endregion
