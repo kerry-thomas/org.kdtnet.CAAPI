@@ -421,6 +421,83 @@ public class DatabaseHelperTests
 
     #endregion
     
+    #region Binary Tests
+    
+    #region  Happy Path
+    
+    [TestMethod]
+    [TestCategory("DatabaseHelper.Binary.HappyPath")]
+    public void GetBinaryNotNull()
+    {
+        MockDataReader!.Setup(x => x.Read()).Returns(true);
+        MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(false);
+
+        byte[] dataToReturn = [1, 2, 3];
+        int callSeq = 0;
+        MockDataReader!.Setup(x => x.GetBytes(
+            It.IsAny<int>(),
+            It.IsAny<long>(),
+            It.IsAny<byte[]>(),
+            It.IsAny<int>(),
+            It.IsAny<int>()
+            )).Returns<int, long, byte[], int, int>((a,b,c,d,e) =>
+        {
+            callSeq++;
+            if (callSeq == 1)
+            {
+                c[0]=dataToReturn[0];
+                c[1]=dataToReturn[1];
+                c[2]=dataToReturn[2];
+                return 3;
+            }
+            else
+            {
+                return 0;
+            }
+        });
+        var bytesReturned = MockDataReader.Object.GetBinaryNotNull("somecolumn", true);
+        Assert.AreEqual(3, bytesReturned.Length);
+        Assert.AreEqual(dataToReturn[0], bytesReturned[0]);
+        Assert.AreEqual(dataToReturn[1], bytesReturned[1]);
+        Assert.AreEqual(dataToReturn[2], bytesReturned[2]);
+    }
+    
+    [TestMethod]
+    [TestCategory("DatabaseHelper.Binary.HappyPath")]
+    public void GetBinaryNotNullEmptyArray()
+    {
+        MockDataReader!.Setup(x => x.Read()).Returns(true);
+        MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(false);
+
+        MockDataReader!.Setup(x => x.GetBytes(
+            It.IsAny<int>(),
+            It.IsAny<long>(),
+            It.IsAny<byte[]>(),
+            It.IsAny<int>(),
+            It.IsAny<int>()
+        )).Returns<int, long, byte[], int, int>((a, b, c, d, e) => 0);
+
+        var bytesReturned = MockDataReader.Object.GetBinaryNotNull("somecolumn", false);
+        Assert.AreEqual(0, bytesReturned.Length);
+        Assert.ThrowsException<DbNullColumnException>(() => MockDataReader.Object.GetBinaryNotNull("somecolumn", true));
+    }
+
+     
+    [TestMethod]
+    [TestCategory("DatabaseHelper.Binary.HappyPath")]
+    public void GetBinaryNotNullDbNull()
+    {
+        MockDataReader!.Setup(x => x.Read()).Returns(true);
+        MockDataReader!.Setup(x => x.IsDBNull(It.IsAny<int>())).Returns(true);
+
+        Assert.ThrowsException<DbNullColumnException>(() => MockDataReader.Object.GetBinaryNotNull("somecolumn", true));
+        Assert.ThrowsException<DbNullColumnException>(() => MockDataReader.Object.GetBinaryNotNull("somecolumn", false));
+    }
+
+    #endregion
+    
+    #endregion
+    
     #endregion
 
     #region Parameter Tests
